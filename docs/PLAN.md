@@ -26,28 +26,7 @@ Agent Agent Agent  Agent
        ↓ tests automáticos
   Human Review & Approve
        ↓
-  Runbook: Validación y Dokumentación
-       ↓
-  Merge → Deploy a Prod
-```
-Jira Ticket (el orquestador lo lee via MCP)
-       ↓
-Strands SDK Orchestrator Agent
-  ├── MCP: Jira (lee ticket, actualiza estado, comenta)
-  ├── MCP: GitHub (crea branch, PR)
-  ↓ descompone el ticket
-  ┌────┼────┬────────┐
-  ↓    ↓    ↓        ↓
-Arch  Back  Front    QA
-Agent Agent Agent  Agent
-  │    (strands_tools: file_read, file_write, editor, shell)
-  └────┼────┴────────┘
-       ↓ código generado
-  Git Branch + Pull Request (via MCP GitHub)
-       ↓
-  CI/CD Pipeline
-       ↓ tests automáticos
-  Human Review & Approve
+  Runbook: Validación y Documentación
        ↓
   Merge → Deploy a Prod
 ```
@@ -64,7 +43,7 @@ Agent Agent Agent  Agent
 
 ---
 
-## 2. Stack Tecnológico
+## 2. Stack Tecnológico (MVP)
 
 ### Frontend
 - **React + Vite + TypeScript**
@@ -81,7 +60,9 @@ Agent Agent Agent  Agent
 - **SQLAlchemy + asyncpg** — ORM para PostgreSQL
 
 ### LLM
-- **MiniMax M2.7** via API OpenAI-compatible (`https://api.minimax.io/v1`)
+- **MiniMax M2.7** via API OpenAI-compatible, dos proveedores interchangeably:
+  - `https://api.minimax.io/v1` (MiniMax official)
+  - `https://openrouter.ai/minimax/minimax-m2.7` (OpenRouter)
 - Integración con Strands via `OpenAIModel` provider (sin custom provider necesario)
 
 ### Base de Datos
@@ -267,7 +248,7 @@ Para producción se puede agregar un **Jira webhook → API Gateway → FastAPI*
 
 ### 4.1 Conexión con MiniMax M2.7
 
-MiniMax expone un endpoint OpenAI-compatible en `https://api.minimax.io/v1`. Strands soporta `OpenAIModel` nativamente.
+MiniMax expone un endpoint OpenAI-compatible. Strands soporta `OpenAIModel` nativamente.
 
 ```python
 from strands.models.openai import OpenAIModel
@@ -275,7 +256,7 @@ from strands.models.openai import OpenAIModel
 minimax = OpenAIModel(
     client_args={
         "api_key": MINIMAX_API_KEY,
-        "base_url": "https://api.minimax.io/v1",
+        "base_url": MINIMAX_API_URL,  # configurable: api.minimax.io o openrouter
     },
     model_id="MiniMax-M2.7",
 )
@@ -560,10 +541,10 @@ branch_protection:
     - security-scan
 ```
 
-### CodePipeline (AWS)
+### CI/CD Genérico (CodeBuild/GitHub Actions)
 
 ```yaml
-# buildspec.yml para CodeBuild
+# buildspec.yml para CodeBuild / .github/workflows/ci.yml
 version: 0.2
 phases:
   install:
@@ -584,7 +565,7 @@ phases:
 
 ## 6. Modelo de Datos
 
-### Local: PostgreSQL
+PostgreSQL 16 con SQLAlchemy async.
 
 ```sql
 -- Sesiones de pipeline
@@ -661,36 +642,22 @@ class AgentEvent(Base):
     session = relationship("AgentSession", back_populates="events")
 ```
 
-### Producción: DynamoDB
-
-Para el deploy en AWS, el mismo modelo se mapea a DynamoDB:
-
-| Tabla | PK | SK | Uso |
-|---|---|---|---|
-| `AgentSessions` | `session_id` | `#metadata` | Estado del pipeline |
-| `AgentEvents` | `session_id` | `timestamp#event_id` | Eventos para dashboard |
-| GSI: `TicketIndex` | `ticket_id` | `created_at` | Buscar por ticket |
-
-La capa de acceso a datos se abstrae con un **repository pattern** para que el switch PostgreSQL → DynamoDB sea transparente.
-
 ---
 
-## 7. Dashboard de Monitoreo (Canvas 2D)
+## 7. Dashboard de Monitoreo (MVP)
 
-### 7.1 Arquitectura del Dashboard
+### 7.1 Arquitectura
 
 ```
-DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
-                                                       ↓
-                                                  Canvas 2D (SVG)
-                                                  AgentFigures
-                                                  LogPanel
-                                                  MetricsPanel
+PostgreSQL → Socket.IO (FastAPI) → React Dashboard
+                                               ↓
+                                          Canvas 2D (SVG)
+                                          AgentFigures
+                                          LogPanel
+                                          MetricsPanel
 ```
 
 ### 7.2 Comunicación en Tiempo Real (Socket.IO)
-
-#### Servidor (Python)
 
 ```python
 import socketio
@@ -710,7 +677,6 @@ async def emit_event(session_id: str, event_type: str, payload: dict):
 async def join_session(sid, data):
     """Cliente se une al room de una sesión para recibir eventos."""
     sio.enter_room(sid, data["session_id"])
-    # Enviar estado actual de todos los agentes
     state = await get_session_state(data["session_id"])
     await sio.emit("state_sync", state, to=sid)
 ```
@@ -736,7 +702,7 @@ Tipos de eventos: `agent_state_change`, `agent_log`, `task_assigned`, `task_comp
 
 ### 7.3 Sistema de Figuras 2D (Sprites SVG)
 
-Cada agente se representa como un personaje SVG simple con animaciones CSS por estado. Enfoque pragmático: SVG inline como componentes React, sin sprite sheets ni pixel art.
+Cada agente se representa como un personaje SVG simple con animaciones CSS por estado.
 
 #### Estados Visuales
 
@@ -805,8 +771,6 @@ const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => (
 
 #### Conexiones entre Agentes
 
-Cuando un agente envía trabajo a otro, se dibuja una línea animada entre ambos:
-
 ```tsx
 const AgentConnection: React.FC<{ from: Point; to: Point; active: boolean }> = ({
   from, to, active,
@@ -860,23 +824,13 @@ const AgentConnection: React.FC<{ from: Point; to: Point; active: boolean }> = (
 
 ---
 
-## 8. Consideraciones de Producción
+## 8. Seguridad y Guardrails
 
 ### Seguridad
 - API keys en `.env` (git-ignored). En producción, inyectar como secrets del proveedor cloud
 - Agentes ejecutan código en **directorios aislados** (`/app/workspaces/<ticket-id>/`)
 - Branch protection rules impiden merge sin review
 - MCP servers corren como subprocesos del backend, no expuestos externamente
-
-### Observabilidad
-- Logs en stdout (structured JSON) + PostgreSQL (tabla `agent_events`) + Socket.IO dashboard
-- En producción, agregar collector de logs (Loki, ELK, o el nativo del cloud provider)
-
-### Manejo de Errores
-- Retry con backoff exponencial en llamadas a MiniMax API
-- Circuit breaker si MiniMax está caído (notifica y pausa)
-- Timeout por agente (configurable, default 5 min)
-- Si un agente falla 2 veces, el orquestador marca el ticket como "Blocked" en Jira
 
 ### Guardrails Anti-Loop y Control de Billing
 
@@ -887,12 +841,10 @@ const AgentConnection: React.FC<{ from: Point; to: Point; active: boolean }> = (
 ```python
 from strands import Agent
 
-# Cada agente tiene un budget máximo de iteraciones y tiempo
 agent = Agent(
     model=minimax,
     system_prompt="...",
     tools=[...],
-    # Strands soporta max_steps para limitar iteraciones del agent loop
 )
 ```
 
@@ -915,9 +867,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class SessionBudget:
-    """Trackea y limita el consumo de tokens por sesión."""
     max_tokens: int = 100_000
-    max_duration_seconds: int = 600  # 10 min para toda la sesión
+    max_duration_seconds: int = 600
     max_tool_calls_per_agent: int = 20
 
     tokens_used: int = 0
@@ -954,9 +905,15 @@ class BudgetExceededError(Exception):
 
 1. El agente se detiene inmediatamente
 2. Se guarda el estado parcial en la DB
-3. Se emite evento `budget_exceeded` al dashboard (visual: agente con icono de "$" rojo)
+3. Se emite evento `budget_exceeded` al dashboard
 4. Se comenta en Jira: "Agent pipeline paused — budget exceeded. Manual intervention required."
 5. El ticket se transiciona a "Blocked"
+
+### Manejo de Errores
+- Retry con backoff exponencial en llamadas a MiniMax API
+- Circuit breaker si MiniMax está caído (notifica y pausa)
+- Timeout por agente (configurable, default 5 min)
+- Si un agente falla 2 veces, el orquestador marca el ticket como "Blocked" en Jira
 
 ### Costos
 - **MiniMax M2.7**: consultar pricing actual en https://platform.minimax.io/subscribe/token-plan
@@ -964,46 +921,15 @@ class BudgetExceededError(Exception):
 - **Sin servicios serverless** que escalen inesperadamente
 - Los guardrails de token budget son la principal protección contra billing sorpresa
 
----
-
-## 9. Deseable / Futuro
-
-> Las siguientes funcionalidades **no son parte del MVP** pero están contempladas para iteraciones futuras.
-
-### 9.1 Agentes de Remediación de Producción
-
-Usar agentes para **diagnosticar y resolver automáticamente errores de producción**:
-
-- CloudWatch Alarm → EventBridge → Lambda → Strands Orchestrator
-- Agente de Diagnóstico: analiza logs, métricas, traces del error
-- Agente de Remediación: ejecuta acciones correctivas (escalar instancia, rollback, restart servicio)
-- Agente de Validación: verifica que el fix funcionó
-- Requiere: IAM roles con permisos de ejecución, guardrails estrictos, runbooks predefinidos
-
-### 9.2 Agente de DevOps
-
-Agente que genera y mantiene IaC (CDK/CloudFormation), Dockerfiles, y pipelines CI/CD.
-
-### 9.3 Agente de Documentación
-
-Genera y mantiene README, API docs, y guías de contribución a partir del código generado.
-
-### 9.4 Aprendizaje de Reviews
-
-Almacenar feedback de code reviews humanos para que los agentes mejoren con el tiempo (fine-tuning o RAG sobre comentarios de PR).
-
-### 9.5 Dashboard Avanzado
-
-- Sprite sheets con pixel art y animaciones avanzadas (referencia: [NightCityVerse](https://github.com/eruizpy/nightcityverse))
-- Temas claro/oscuro
-- Skins configurables por agente
-- Métricas históricas y analytics
+### Observabilidad
+- Logs en stdout (structured JSON) + PostgreSQL (tabla `agent_events`) + Socket.IO dashboard
+- En producción, agregar collector de logs (Loki, ELK, o el nativo del cloud provider)
 
 ---
 
-## 10. Runbook Operacional
+## 9. Runbook Operacional
 
-### 10.1 Operaciones Comunes
+### 9.1 Operaciones Comunes
 
 #### Iniciar el sistema (local)
 
@@ -1046,7 +972,7 @@ docker compose restart db
 
 ---
 
-### 10.2 Verificación de Salud
+### 9.2 Verificación de Salud
 
 #### Healthchecks
 
@@ -1076,7 +1002,7 @@ curl -f http://localhost:8000/socket.io/?EIO=4&transport=polling
 
 ---
 
-### 10.3 Manejo de Incidentes
+### 9.3 Manejo de Incidentes
 
 #### Pipeline fallido — Ticket bloqueado
 
@@ -1136,7 +1062,7 @@ docker compose restart backend
 
 **Diagnóstico**:
 ```bash
-# Ver consumo de tokens (si está instrumentado)
+# Ver consumo de tokens
 docker compose logs backend | grep -i "budget\|tokens"
 
 # Ver último evento de budget
@@ -1147,10 +1073,6 @@ docker compose exec db psql -U agent -d multi_agent -c \
 **Resolución**:
 ```bash
 # Aumentar límites en config (temporalmente)
-# Editar .env:
-# MAX_TOKENS=200000
-# MAX_ITERATIONS=40
-
 # O limpiar sesión y reintentar
 docker compose exec db psql -U agent -d multi_agent -c \
   "DELETE FROM agent_events WHERE session_id = '<session-id>';"
@@ -1174,12 +1096,8 @@ curl -s https://api.minimax.io/v1/usage \
 **Resolución**:
 ```bash
 # Esperar y reintentar (backoff automático si está implementado)
-
 # Si el problema persiste, verificar status de MiniMax
-# https://status.minimax.io/
-
-# Alternativa: implementar circuit breaker
-# (el código ya contempla esta situación)
+# Alternativa: usar OpenRouter como fallback
 ```
 
 #### Modelo alcanza 70% de usage (switch dinámico)
@@ -1187,66 +1105,19 @@ curl -s https://api.minimax.io/v1/usage \
 **Síntoma**: Se alcanzó ~70% del quota de tokens del modelo actual.
 
 **Modelos configurados**:
-- **Primary**: `opus4.6`
-- **Fallback**: `MiniMax-M2.7`
-
-**Diagnóstico**:
-```bash
-# Ver uso actual de tokens
-curl -s https://api.minimax.io/v1/usage \
-  -H "Authorization: Bearer $MINIMAX_API_KEY"
-
-# Ver modelo actualmente en uso
-docker compose exec backend env | grep MINIMAX_MODEL_ID
-```
+- **Primary**: `MiniMax-M2.7` via api.minimax.io
+- **Fallback**: `MiniMax-M2.7` via OpenRouter
 
 **Resolución (switch manual a fallback)**:
 ```bash
-# 1. Editar .env para usar el modelo fallback
-#MINIMAX_MODEL_ID=MiniMax-M2.7
-
-# 2. Actualizar variable en runtime (si está soportado)
-# El sistema debería会自动 cambiar al modelo fallback
-
-# 3. Si no hay switch automático, reiniciar con el fallback
-sed -i 's/MINIMAX_MODEL_ID=opus4.6/MINIMAX_MODEL_ID=MiniMax-M2.7/' .env
+# Cambiar MINIMAX_API_URL en .env a OpenRouter
+sed -i 's|MINIMAX_API_URL=.*|MINIMAX_API_URL=https://openrouter.ai/api/v1|' .env
 docker compose restart backend
-
-# 4. Verificar que el nuevo modelo está activo
-docker compose logs backend --tail=20 | grep -i "model"
-```
-
-**Resolución (switch de vuelta a primary cuando se reacarga)**:
-```bash
-# Cuando el primary se haya recargado (nuevo billing cycle):
-sed -i 's/MINIMAX_MODEL_ID=MiniMax-M2.7/MINIMAX_MODEL_ID=opus4.6/' .env
-docker compose restart backend
-```
-
-**Implementación recomendada (auto-switch)**:
-```python
-# En config.py o settings, implementar:
-class ModelConfig:
-    primary_model = "opus4.6"
-    fallback_model = "MiniMax-M2.7"
-    usage_threshold = 0.70  # 70%
-
-    def get_current_model(self):
-        usage = self.get_model_usage(self.primary_model)
-        if usage >= self.usage_threshold:
-            return self.fallback_model
-        return self.primary_model
-
-# Usar en la configuración del agente:
-minimax = OpenAIModel(
-    model_id=model_config.get_current_model(),
-    ...
-)
 ```
 
 ---
 
-### 10.4 Recovery Procedures
+### 9.4 Recovery Procedures
 
 #### Disaster Recovery — Pérdida de PostgreSQL
 
@@ -1265,12 +1136,11 @@ docker compose exec db psql -U agent -d multi_agent < backup.sql
 #### Recovery de Workspace corrupto
 
 ```bash
-# 1. Identificar workspace проблемaticos
+# 1. Identificar workspace problemáticos
 ls -la workspaces/
 
 # 2. Regenerar desde PR
 #    - El PR contiene todo el código generado
-#    - Los agentes pueden releer el diff
 
 # 3. Limpiar workspace
 rm -rf workspaces/<ticket-id>/
@@ -1278,7 +1148,7 @@ rm -rf workspaces/<ticket-id>/
 
 ---
 
-### 10.5 Comandos de Debugging
+### 9.5 Comandos de Debugging
 
 ```bash
 # Ver todos los eventos de una sesión
@@ -1310,7 +1180,7 @@ print('MCP client importado OK')
 
 ---
 
-### 10.6 Contactos y Escalación
+### 9.6 Contactos y Escalación
 
 | Nivel | Responsable | Cuando escalar |
 |---|---|---|
@@ -1320,9 +1190,44 @@ print('MCP client importado OK')
 
 ---
 
-## 11. Strands vs AgentCore — Justificación
+## 10. Futuros / Deseables
 
-| Criterio | Strands SDK | Bedrock AgentCore |
+> Las siguientes funcionalidades **no son parte del MVP** pero están contempladas para iteraciones futuras.
+
+### 10.1 Agentes de Remediación de Producción
+
+Usar agentes para **diagnosticar y resolver automáticamente errores de producción**:
+
+- CloudWatch Alarm → EventBridge → Lambda → Strands Orchestrator
+- Agente de Diagnóstico: analiza logs, métricas, traces del error
+- Agente de Remediación: ejecuta acciones correctivas (escalar instancia, rollback, restart servicio)
+- Agente de Validación: verifica que el fix funcionó
+- Requiere: IAM roles con permisos de ejecución, guardrails estrictos, runbooks predefinidos
+
+### 10.2 Agente de DevOps
+
+Agente que genera y mantiene IaC (CDK/CloudFormation), Dockerfiles, y pipelines CI/CD.
+
+### 10.3 Agente de Documentación
+
+Genera y mantiene README, API docs, y guías de contribución a partir del código generado.
+
+### 10.4 Aprendizaje de Reviews
+
+Almacenar feedback de code reviews humanos para que los agentes mejoren con el tiempo (fine-tuning o RAG sobre comentarios de PR).
+
+### 10.5 Dashboard Avanzado
+
+- Sprite sheets con pixel art y animaciones avanzadas (referencia: [NightCityVerse](https://github.com/eruizpy/nightcityverse))
+- Temas claro/oscuro
+- Skins configurables por agente
+- Métricas históricas y analytics
+
+### 10.6 AgentCore con Full AWS (Alternative Architecture)
+
+**Alternativa futura para equipos ya invertidos en AWS.**
+
+| Criterio | Strands SDK (MVP) | Bedrock AgentCore (Futuro) |
 |---|---|---|
 | LLM externo (MiniMax) | **Si** — `OpenAIModel` provider | No — solo modelos Bedrock |
 | Control del flujo | Total, es tu código Python | Managed, menos flexibilidad |
@@ -1330,12 +1235,35 @@ print('MCP client importado OK')
 | Multi-agent patterns | Agents-as-tools, GraphBuilder, Swarm | Limitado a Bedrock agents |
 | Curva de aprendizaje | Moderada, buen docs | Baja pero menos flexible |
 | Demo-friendliness | **Alto** — puedes mostrar el código | Más "caja negra" |
+| Vendor lock-in | **Bajo** — cloud-agnostic | Alto — solo AWS |
 
-**Decisión: Strands SDK** — Soporta MiniMax como LLM externo, da control total del orquestador, y al ser puro Python encaja con FastAPI + DynamoDB. Si en el futuro migras a un modelo Bedrock, Strands soporta ambos sin cambio de arquitectura.
+**Cuándo considerar migrar a AgentCore:**
+- Equipo ya tiene experiencia profunda con AWS
+- Se necesita integración nativa con Bedrock (Claude, etc.)
+- Se prioriza simplicidad de gestión sobre control
+- El costo de AgentCore Runtime es aceptable
+
+**Nota:** La arquitectura actual (Strands + Docker + PostgreSQL) está diseñada para ser cloud-agnostic. Si en el futuro se migra a Bedrock, Strands soporta ambos sin cambio de arquitectura significativa.
+
+#### DynamoDB como alternativa a PostgreSQL (AWS)
+
+Para deploy en AWS, PostgreSQL puede substituirse por DynamoDB:
+
+| Tabla | PK | SK | Uso |
+|---|---|---|---|
+| `AgentSessions` | `session_id` | `#metadata` | Estado del pipeline |
+| `AgentEvents` | `session_id` | `timestamp#event_id` | Eventos para dashboard |
+| GSI: `TicketIndex` | `ticket_id` | `created_at` | Buscar por ticket |
+
+La capa de acceso a datos se abstrae con un **repository pattern** para que el switch PostgreSQL → DynamoDB sea transparente.
+
+```
+DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
+```
 
 ---
 
-## 12. Recursos de Referencia
+## 11. Recursos de Referencia
 
 ### Strands SDK
 - [Strands Agents SDK — Docs](https://strandsagents.com)
@@ -1353,6 +1281,7 @@ print('MCP client importado OK')
 ### LLM
 - [MiniMax API — OpenAI Compatible Endpoint](https://platform.minimax.io/docs/api-reference/text-openai-api)
 - [MiniMax Token Plans](https://platform.minimax.io/subscribe/token-plan)
+- [OpenRouter — MiniMax M2.7](https://openrouter.ai/minimax/minimax-m2.7)
 
 ### Referencia de Arquitectura
 - [Anthropic: How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
