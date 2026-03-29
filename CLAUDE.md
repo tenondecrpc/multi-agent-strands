@@ -78,6 +78,23 @@ Key architectural decisions:
 - Ruff for Python linting/formatting, ESLint for TypeScript
 - Imperative mood for git commits (e.g., "Add feature" not "Added feature")
 
+## Communication Standards
+
+- **All communication must be in English** - Include code comments, PR descriptions, commit messages, chat messages, and any other communication
+- **No code comments unless explicitly requested by the user** - Code should be self-documenting through meaningful names
+
+## Scaffolding Rule (IMPORTANT)
+
+**Always use official CLIs for project scaffolding and initialization.** Manual file creation is only acceptable when no official CLI exists or when extending an existing project.
+
+| When | Use |
+|------|-----|
+| New React project | `npm create vite@latest my-app -- --template react-ts` |
+| New Python/FastAPI | Use cookiecutters or official templates |
+| Docker setup | `docker init` when available |
+
+**When NOT to use CLIs**: Extending existing projects, custom configs, business logic code. See `AGENTS.md` Section 10 for details.
+
 ## OpenSpec Workflow (Specification-Driven Development)
 
 This project uses OpenSpec for planning changes. Config at `openspec/config.yaml`, changes tracked in `openspec/changes/`.

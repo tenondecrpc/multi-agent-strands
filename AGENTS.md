@@ -464,6 +464,7 @@ MCP integrations:
 4. **Logging** - Use structured logging for debugging
 5. **Security** - Never expose secrets; use environment variables
 6. **Human review** - All code changes require human approval before merge
+7. **Use official CLIs for scaffolding** - Always prefer official CLIs over manual file creation when initializing projects or adding scaffolds (see Section 10)
 
 ---
 
@@ -482,7 +483,7 @@ This project uses OpenSpec for specification-driven development. The following c
 
 ### Runbooks
 
-Para procedimientos operativos y manejo de incidentes, ver [MULTI_AGENT_DEV_SYSTEM.md](./MULTI_AGENT_DEV_SYSTEM.md#10-runbook-operacional).
+For operational procedures and incident handling, see [MULTI_AGENT_DEV_SYSTEM.md](./MULTI_AGENT_DEV_SYSTEM.md#10-runbook-operacional).
 
 ### OpenSpec CLI Commands
 
@@ -516,6 +517,103 @@ openspec --help
 2. **Propose**: Use `/opsx:propose` to create a new change with proposal, design, and tasks
 3. **Implement**: Use `/opsx:apply` to implement tasks from the change
 4. **Archive**: Use `/opsx:archive` to finalize and archive completed changes
+
+---
+
+## 10. Project Scaffolding with Official CLIs
+
+**RULE: Always use official CLIs for project scaffolding and initialization.** Manual file creation is only acceptable when no official CLI exists or when extending an existing project.
+
+### Why CLIs?
+
+| Aspect | CLI | Manual |
+|--------|-----|--------|
+| Speed | Seconds | Minutes |
+| Consistency | Always the same | Human errors |
+| Versions | Always up to date | Can become outdated |
+| Boilerplate | Proven templates | May forget something |
+
+### Frontend (React + Vite + TypeScript)
+
+```bash
+# Use npm create vite for new projects
+npm create vite@latest my-app -- --template react-ts
+
+# Do NOT do this manually:
+# mkdir -p src/components src/hooks src/pages
+# touch src/App.tsx vite.config.ts
+```
+
+### Backend (Python/FastAPI)
+
+```bash
+# Use pip/uv to install and create structure
+uv pip install fastapi uvicorn sqlalchemy pydantic
+
+# For more complex structures, use cookiecutters or official templates
+# https://github.com/tiangolo/full-stack-fastapi-postgresql
+```
+
+### Node.js Libraries
+
+```bash
+# Use npm init to initialize
+npm init -y
+
+# For TypeScript libraries
+npx tsdx create mylib
+```
+
+### Docker
+
+```bash
+# Use docker init when available
+docker init
+
+# Do NOT create docker-compose.yml manually if docker init exists
+```
+
+### When NOT to use CLIs
+
+1. **Extending existing projects** - Add individual files to an already created project
+2. **Specific configuration files** - Custom `docker-compose.yml`, `.env.example`
+3. **Business code** - Never generate business logic with CLIs
+4. **When CLI does not support the exact template** - If you need a very specific structure
+
+### Recommended Workflow
+
+1. Create base project with official CLI
+2. Customize configuration according to project needs
+3. Add additional structure manually if necessary
+
+---
+
+## 11. Agent Communication Standards
+
+This section applies to all AI agents working on this project, including but not limited to **Claude Code** and **OpenCode**.
+
+### Language Requirements
+
+- **All communication must be in English** - This includes:
+  - Code comments and documentation (when explicitly allowed)
+  - Pull request descriptions and commit messages
+  - Issue comments and discussions
+  - Chat messages and terminal output
+  - Any other form of communication related to the project
+
+### Code Comment Policy
+
+- **No code comments unless explicitly requested by the user**
+  - Code should be self-documenting through meaningful variable and function names
+  - Only add comments when the user specifically requests them
+  - When comments are needed, keep them concise and relevant
+
+### Rationale
+
+These standards ensure:
+- Consistent developer experience across all AI assistants
+- Clean, maintainable code that relies on naming rather than comments
+- Clear communication that all team members can understand
 
 ---
 

@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent_local
+      POSTGRES_DB: multi_agent
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agent:agent_local@db:5432/multi_agent
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      JIRA_URL: ${JIRA_URL}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN}
+      JIRA_EMAIL: ${JIRA_EMAIL}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_SOCKET_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
