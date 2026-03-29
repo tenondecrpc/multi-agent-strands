@@ -79,6 +79,30 @@ psql -U postgres -c "CREATE USER agent WITH PASSWORD 'agent_local';"
 psql -U postgres -c "CREATE DATABASE multi_agent OWNER agent;"
 ```
 
+### Database Migrations
+
+This project uses Alembic for database migrations.
+
+```bash
+cd backend
+
+# Run all pending migrations
+alembic upgrade head
+
+# Check current migration status
+alembic current
+alembic history
+
+# Generate a new migration (after model changes)
+alembic revision --autogenerate -m "Description of changes"
+
+# Rollback last migration
+alembic downgrade -1
+```
+
+Environment variables:
+- `DATABASE_URL` - Connection string (default: `postgresql+asyncpg://agent:agent_local@localhost:5432/multi_agent`)
+
 ### Backend
 
 ```bash
