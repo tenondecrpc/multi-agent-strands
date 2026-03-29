@@ -152,7 +152,88 @@ Para producción, agregar:
 
 ---
 
-## 3. Integración con Jira via MCP
+## 3. Modelo de Datos
+
+PostgreSQL 16 con SQLAlchemy async.
+
+```sql
+-- Sesiones de pipeline
+CREATE TABLE agent_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'started',
+    -- started, in_progress, pr_created, error, completed
+    pr_url TEXT,
+    result TEXT,
+    error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_sessions_ticket ON agent_sessions(ticket_id);
+
+-- Eventos de agentes (alimentan el dashboard via Socket.IO)
+CREATE TABLE agent_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES agent_sessions(id),
+    agent_id VARCHAR(50) NOT NULL,
+    -- architect, backend_agent, frontend_agent, qa_agent
+    event_type VARCHAR(30) NOT NULL,
+    -- state_change, log, error, task_assigned, task_completed
+    previous_state VARCHAR(20),
+    new_state VARCHAR(20),
+    payload JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_events_session ON agent_events(session_id, created_at);
+```
+
+#### SQLAlchemy Models
+
+```python
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase, relationship
+import uuid
+from datetime import datetime, timezone
+
+class Base(DeclarativeBase):
+    pass
+
+class AgentSession(Base):
+    __tablename__ = "agent_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ticket_id = Column(String(50), nullable=False, index=True)
+    status = Column(String(20), nullable=False, default="started")
+    pr_url = Column(Text)
+    result = Column(Text)
+    error = Column(Text)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
+
+    events = relationship("AgentEvent", back_populates="session")
+
+class AgentEvent(Base):
+    __tablename__ = "agent_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id = Column(UUID(as_uuid=True), ForeignKey("agent_sessions.id"), nullable=False)
+    agent_id = Column(String(50), nullable=False)
+    event_type = Column(String(30), nullable=False)
+    previous_state = Column(String(20))
+    new_state = Column(String(20))
+    payload = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    session = relationship("AgentSession", back_populates="events")
+```
+
+---
+
+## 4. Integración con Jira via MCP
 
 ### MCP Server: mcp-atlassian
 
@@ -244,9 +325,9 @@ Para producción se puede agregar un **Jira webhook → API Gateway → FastAPI*
 
 ---
 
-## 4. Agentes de Desarrollo con Strands SDK
+## 5. Agentes de Desarrollo con Strands SDK
 
-### 4.1 Conexión con MiniMax M2.7
+### 5.1 Conexión con MiniMax M2.7
 
 MiniMax expone un endpoint OpenAI-compatible. Strands soporta `OpenAIModel` nativamente.
 
@@ -262,7 +343,7 @@ minimax = OpenAIModel(
 )
 ```
 
-### 4.2 Tools: strands_tools + MCP
+### 5.2 Tools: strands_tools + MCP
 
 Los agentes usan una combinación de **strands_tools nativos** (operaciones sobre archivos/código) y **MCP clients** (Jira, GitHub).
 
@@ -322,7 +403,7 @@ QA_TOOLS = [file_read, file_write, shell, python_repl] # strands_tools: escribe 
 | `github_create_branch` | MCP (github) | Orquestador |
 | `github_create_pull_request` | MCP (github) | Orquestador |
 
-### 4.3 Definición de Agentes
+### 5.3 Definición de Agentes
 
 Cada agente tiene un rol claro, system prompt acotado, y tools específicos. Los MCP clients se pasan directamente — Strands maneja su lifecycle.
 
@@ -438,7 +519,7 @@ You MUST run the tests, not just write them.
     )
 ```
 
-### 4.4 Alternativa: Graph Builder para flujos secuenciales
+### 5.4 Alternativa: Graph Builder para flujos secuenciales
 
 Para tickets donde el flujo siempre es lineal (Backend → Frontend → QA), puedes usar `GraphBuilder`:
 
@@ -457,7 +538,7 @@ pipeline = builder.build()
 result = pipeline(f"Implement Jira ticket: {ticket_context}")
 ```
 
-### 4.5 Pipeline Completo
+### 5.5 Pipeline Completo
 
 ```python
 import uuid
@@ -497,150 +578,106 @@ async def launch_agent_pipeline(ticket_id: str) -> str:
 
 ---
 
-## 5. Human-in-the-Loop: Review y CI/CD
+## 6. Seguridad y Guardrails
 
-El código generado por agentes **nunca va directo a producción**. El flujo de aprobación:
+### Seguridad
+- API keys en `.env` (git-ignored). En producción, inyectar como secrets del proveedor cloud
+- Agentes ejecutan código en **directorios aislados** (`/app/workspaces/<ticket-id>/`)
+- Branch protection rules impiden merge sin review
+- MCP servers corren como subprocesos del backend, no expuestos externamente
 
-```
-Agentes generan código
-       ↓
-Git branch: agent/proj-123
-       ↓
-Pull Request automático (GitHub/CodeCommit)
-       ↓
-CI/CD Pipeline se activa:
-  ├── Linting (ruff, eslint)
-  ├── Tests unitarios (pytest, vitest)
-  ├── Tests integración
-  ├── Security scan (bandit, npm audit)
-  └── Build check
-       ↓
-  ┌─────────────────────────┐
-  │  HUMAN REVIEW REQUIRED  │
-  │                         │
-  │  - Code review del PR   │
-  │  - Verificar calidad    │
-  │  - Aprobar o rechazar   │
-  └─────────────────────────┘
-       ↓ (si aprobado)
-  Merge → Deploy a staging → Deploy a prod
-```
+### Guardrails Anti-Loop y Control de Billing
 
-### Configuración de branch protection
+> **CRITICO para PoC y producción.** Los agentes pueden entrar en loops infinitos que consumen tokens sin parar. Estos guardrails son obligatorios.
 
-```yaml
-# GitHub branch protection (configurar via UI o API)
-branch_protection:
-  required_reviews: 1
-  dismiss_stale_reviews: true
-  require_code_owner_reviews: true
-  required_status_checks:
-    - lint
-    - test-backend
-    - test-frontend
-    - security-scan
-```
-
-### CI/CD Genérico (CodeBuild/GitHub Actions)
-
-```yaml
-# buildspec.yml para CodeBuild / .github/workflows/ci.yml
-version: 0.2
-phases:
-  install:
-    commands:
-      - pip install -r requirements.txt
-      - npm ci
-  build:
-    commands:
-      - ruff check .
-      - pytest tests/ --tb=short
-      - cd frontend && npm run lint && npm run test
-  post_build:
-    commands:
-      - echo "All checks passed — awaiting human review"
-```
-
----
-
-## 6. Modelo de Datos
-
-PostgreSQL 16 con SQLAlchemy async.
-
-```sql
--- Sesiones de pipeline
-CREATE TABLE agent_sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ticket_id VARCHAR(50) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'started',
-    -- started, in_progress, pr_created, error, completed
-    pr_url TEXT,
-    result TEXT,
-    error TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_sessions_ticket ON agent_sessions(ticket_id);
-
--- Eventos de agentes (alimentan el dashboard via Socket.IO)
-CREATE TABLE agent_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES agent_sessions(id),
-    agent_id VARCHAR(50) NOT NULL,
-    -- architect, backend_agent, frontend_agent, qa_agent
-    event_type VARCHAR(30) NOT NULL,
-    -- state_change, log, error, task_assigned, task_completed
-    previous_state VARCHAR(20),
-    new_state VARCHAR(20),
-    payload JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_events_session ON agent_events(session_id, created_at);
-```
-
-#### SQLAlchemy Models
+#### Límites por agente
 
 ```python
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, relationship
-import uuid
-from datetime import datetime, timezone
+from strands import Agent
 
-class Base(DeclarativeBase):
-    pass
-
-class AgentSession(Base):
-    __tablename__ = "agent_sessions"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    ticket_id = Column(String(50), nullable=False, index=True)
-    status = Column(String(20), nullable=False, default="started")
-    pr_url = Column(Text)
-    result = Column(Text)
-    error = Column(Text)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
-                        onupdate=lambda: datetime.now(timezone.utc))
-
-    events = relationship("AgentEvent", back_populates="session")
-
-class AgentEvent(Base):
-    __tablename__ = "agent_events"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    session_id = Column(UUID(as_uuid=True), ForeignKey("agent_sessions.id"), nullable=False)
-    agent_id = Column(String(50), nullable=False)
-    event_type = Column(String(30), nullable=False)
-    previous_state = Column(String(20))
-    new_state = Column(String(20))
-    payload = Column(JSON, default=dict)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
-    session = relationship("AgentSession", back_populates="events")
+agent = Agent(
+    model=minimax,
+    system_prompt="...",
+    tools=[...],
+)
 ```
+
+#### Configuración de límites
+
+| Guardrail | Valor Default | Descripción |
+|---|---|---|
+| **Timeout por agente** | 5 min | El agente se cancela si excede este tiempo |
+| **Max iteraciones (tool calls)** | 20 | Máximo de tool calls por invocación de agente |
+| **Max iteraciones orquestador** | 50 | El orquestador tiene más margen porque coordina |
+| **Token budget por sesión** | 100k tokens | Se trackea y corta si se excede |
+| **Max archivos por agente** | 15 | Evita que un agente cree archivos infinitamente |
+| **Max tamaño de archivo** | 500 líneas | Si un agente genera más, se corta y reporta error |
+
+#### Implementación del token tracker
+
+```python
+import time
+from dataclasses import dataclass, field
+
+@dataclass
+class SessionBudget:
+    max_tokens: int = 100_000
+    max_duration_seconds: int = 600
+    max_tool_calls_per_agent: int = 20
+
+    tokens_used: int = 0
+    start_time: float = field(default_factory=time.time)
+    tool_calls: dict[str, int] = field(default_factory=dict)
+
+    def track_tokens(self, agent_id: str, tokens: int):
+        self.tokens_used += tokens
+        if self.tokens_used > self.max_tokens:
+            raise BudgetExceededError(
+                f"Session token budget exceeded: {self.tokens_used}/{self.max_tokens}"
+            )
+
+    def track_tool_call(self, agent_id: str):
+        self.tool_calls[agent_id] = self.tool_calls.get(agent_id, 0) + 1
+        if self.tool_calls[agent_id] > self.max_tool_calls_per_agent:
+            raise BudgetExceededError(
+                f"Agent {agent_id} exceeded max tool calls: "
+                f"{self.tool_calls[agent_id]}/{self.max_tool_calls_per_agent}"
+            )
+
+    def check_timeout(self):
+        elapsed = time.time() - self.start_time
+        if elapsed > self.max_duration_seconds:
+            raise BudgetExceededError(
+                f"Session timeout: {elapsed:.0f}s / {self.max_duration_seconds}s"
+            )
+
+class BudgetExceededError(Exception):
+    pass
+```
+
+#### Qué pasa cuando se excede un límite
+
+1. El agente se detiene inmediatamente
+2. Se guarda el estado parcial en la DB
+3. Se emite evento `budget_exceeded` al dashboard
+4. Se comenta en Jira: "Agent pipeline paused — budget exceeded. Manual intervention required."
+5. El ticket se transiciona a "Blocked"
+
+### Manejo de Errores
+- Retry con backoff exponencial en llamadas a MiniMax API
+- Circuit breaker si MiniMax está caído (notifica y pausa)
+- Timeout por agente (configurable, default 5 min)
+- Si un agente falla 2 veces, el orquestador marca el ticket como "Blocked" en Jira
+
+### Costos
+- **MiniMax M2.7**: consultar pricing actual en https://platform.minimax.io/subscribe/token-plan
+- **Infra**: PostgreSQL + Docker containers — costo fijo y predecible
+- **Sin servicios serverless** que escalen inesperadamente
+- Los guardrails de token budget son la principal protección contra billing sorpresa
+
+### Observabilidad
+- Logs en stdout (structured JSON) + PostgreSQL (tabla `agent_events`) + Socket.IO dashboard
+- En producción, agregar collector de logs (Loki, ELK, o el nativo del cloud provider)
 
 ---
 
@@ -824,106 +861,69 @@ const AgentConnection: React.FC<{ from: Point; to: Point; active: boolean }> = (
 
 ---
 
-## 8. Seguridad y Guardrails
+## 8. Human-in-the-Loop: Review y CI/CD
 
-### Seguridad
-- API keys en `.env` (git-ignored). En producción, inyectar como secrets del proveedor cloud
-- Agentes ejecutan código en **directorios aislados** (`/app/workspaces/<ticket-id>/`)
-- Branch protection rules impiden merge sin review
-- MCP servers corren como subprocesos del backend, no expuestos externamente
+El código generado por agentes **nunca va directo a producción**. El flujo de aprobación:
 
-### Guardrails Anti-Loop y Control de Billing
-
-> **CRITICO para PoC y producción.** Los agentes pueden entrar en loops infinitos que consumen tokens sin parar. Estos guardrails son obligatorios.
-
-#### Límites por agente
-
-```python
-from strands import Agent
-
-agent = Agent(
-    model=minimax,
-    system_prompt="...",
-    tools=[...],
-)
+```
+Agentes generan código
+       ↓
+Git branch: agent/proj-123
+       ↓
+Pull Request automático (GitHub/CodeCommit)
+       ↓
+CI/CD Pipeline se activa:
+  ├── Linting (ruff, eslint)
+  ├── Tests unitarios (pytest, vitest)
+  ├── Tests integración
+  ├── Security scan (bandit, npm audit)
+  └── Build check
+       ↓
+  ┌─────────────────────────┐
+  │  HUMAN REVIEW REQUIRED  │
+  │                         │
+  │  - Code review del PR   │
+  │  - Verificar calidad    │
+  │  - Aprobar o rechazar   │
+  └─────────────────────────┘
+       ↓ (si aprobado)
+  Merge → Deploy a staging → Deploy a prod
 ```
 
-#### Configuración de límites
+### Configuración de branch protection
 
-| Guardrail | Valor Default | Descripción |
-|---|---|---|
-| **Timeout por agente** | 5 min | El agente se cancela si excede este tiempo |
-| **Max iteraciones (tool calls)** | 20 | Máximo de tool calls por invocación de agente |
-| **Max iteraciones orquestador** | 50 | El orquestador tiene más margen porque coordina |
-| **Token budget por sesión** | 100k tokens | Se trackea y corta si se excede |
-| **Max archivos por agente** | 15 | Evita que un agente cree archivos infinitamente |
-| **Max tamaño de archivo** | 500 líneas | Si un agente genera más, se corta y reporta error |
-
-#### Implementación del token tracker
-
-```python
-import time
-from dataclasses import dataclass, field
-
-@dataclass
-class SessionBudget:
-    max_tokens: int = 100_000
-    max_duration_seconds: int = 600
-    max_tool_calls_per_agent: int = 20
-
-    tokens_used: int = 0
-    start_time: float = field(default_factory=time.time)
-    tool_calls: dict[str, int] = field(default_factory=dict)
-
-    def track_tokens(self, agent_id: str, tokens: int):
-        self.tokens_used += tokens
-        if self.tokens_used > self.max_tokens:
-            raise BudgetExceededError(
-                f"Session token budget exceeded: {self.tokens_used}/{self.max_tokens}"
-            )
-
-    def track_tool_call(self, agent_id: str):
-        self.tool_calls[agent_id] = self.tool_calls.get(agent_id, 0) + 1
-        if self.tool_calls[agent_id] > self.max_tool_calls_per_agent:
-            raise BudgetExceededError(
-                f"Agent {agent_id} exceeded max tool calls: "
-                f"{self.tool_calls[agent_id]}/{self.max_tool_calls_per_agent}"
-            )
-
-    def check_timeout(self):
-        elapsed = time.time() - self.start_time
-        if elapsed > self.max_duration_seconds:
-            raise BudgetExceededError(
-                f"Session timeout: {elapsed:.0f}s / {self.max_duration_seconds}s"
-            )
-
-class BudgetExceededError(Exception):
-    pass
+```yaml
+# GitHub branch protection (configurar via UI o API)
+branch_protection:
+  required_reviews: 1
+  dismiss_stale_reviews: true
+  require_code_owner_reviews: true
+  required_status_checks:
+    - lint
+    - test-backend
+    - test-frontend
+    - security-scan
 ```
 
-#### Qué pasa cuando se excede un límite
+### CI/CD Genérico (CodeBuild/GitHub Actions)
 
-1. El agente se detiene inmediatamente
-2. Se guarda el estado parcial en la DB
-3. Se emite evento `budget_exceeded` al dashboard
-4. Se comenta en Jira: "Agent pipeline paused — budget exceeded. Manual intervention required."
-5. El ticket se transiciona a "Blocked"
-
-### Manejo de Errores
-- Retry con backoff exponencial en llamadas a MiniMax API
-- Circuit breaker si MiniMax está caído (notifica y pausa)
-- Timeout por agente (configurable, default 5 min)
-- Si un agente falla 2 veces, el orquestador marca el ticket como "Blocked" en Jira
-
-### Costos
-- **MiniMax M2.7**: consultar pricing actual en https://platform.minimax.io/subscribe/token-plan
-- **Infra**: PostgreSQL + Docker containers — costo fijo y predecible
-- **Sin servicios serverless** que escalen inesperadamente
-- Los guardrails de token budget son la principal protección contra billing sorpresa
-
-### Observabilidad
-- Logs en stdout (structured JSON) + PostgreSQL (tabla `agent_events`) + Socket.IO dashboard
-- En producción, agregar collector de logs (Loki, ELK, o el nativo del cloud provider)
+```yaml
+# buildspec.yml para CodeBuild / .github/workflows/ci.yml
+version: 0.2
+phases:
+  install:
+    commands:
+      - pip install -r requirements.txt
+      - npm ci
+  build:
+    commands:
+      - ruff check .
+      - pytest tests/ --tb=short
+      - cd frontend && npm run lint && npm run test
+  post_build:
+    commands:
+      - echo "All checks passed — awaiting human review"
+```
 
 ---
 
