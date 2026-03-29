@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "aws-strands": {
+      "source": "hoodini/ai-agents-skills",
+      "sourceType": "github",
+      "computedHash": "7ab9e9c1dd24b9f21058b1782f7bf027eb0510e3711aa8e210ac3c1563cbc479"
+    }
+  }
+}

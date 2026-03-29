@@ -105,18 +105,30 @@ Environment variables:
 
 ### Backend
 
+**Important:** Always use a project-specific virtual environment (not global Python).
+
 ```bash
 cd backend
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Create virtual environment (local to project)
+python -m venv .venv
+
+# Activate (run this each time before working on the project)
+source .venv/bin/activate  # macOS/Linux
+# .venv\Scripts\activate    # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
+# Install new dependency (then update requirements.txt)
+pip install nueva-libreria
+pip freeze > requirements.txt
+
 # Run development server
 uvicorn app.main:app --reload --port 8000
+
+# When done, exit the virtual environment
+deactivate
 ```
 
 API available at http://localhost:8000
@@ -206,3 +218,32 @@ This project uses OpenSpec for specification-driven development:
 # Archive completed change
 /opsx:archive
 ```
+
+---
+
+## Debugging Jira Integration
+
+### Test Jira API Directly
+
+Get an API token from: https://id.atlassian.com/manage-profile/security/api-tokens
+
+```bash
+# Search tickets by status
+curl -s -X GET \
+  -H "Authorization: Basic $(echo -n 'YOUR_EMAIL:YOUR_API_TOKEN' | base64)" \
+  -H "Accept: application/json" \
+  "https://YOUR_DOMAIN.atlassian.net/rest/api/3/search/jql?jql=status%20=%20%27To%20Do%27&maxResults=5&fields=key,summary,status"
+
+# Get single ticket
+curl -s -X GET \
+  -H "Authorization: Basic $(echo -n 'YOUR_EMAIL:YOUR_API_TOKEN' | base64)" \
+  -H "Accept: application/json" \
+  "https://YOUR_DOMAIN.atlassian.net/rest/api/3/issue/TICKET-KEY"
+```
+
+### Check MCP Connection
+
+The MCP server uses `uvx mcp-atlassian`. If connection fails, verify:
+1. `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` are set in `.env`
+2. API token is valid and not expired
+3. Email matches the Atlassian account

@@ -7,11 +7,11 @@ Sistema multi-agente que se activa automáticamente cuando se crea o actualiza u
 ### Flujo Principal
 
 ```
-Jira Ticket (el orquestador lo lee via MCP)
+Jira Ticket (polling detecta "To Do")
        ↓
 Strands SDK Orchestrator Agent
-  ├── MCP: Jira (lee ticket, actualiza estado, comenta)
-  ├── MCP: GitHub (crea branch, PR)
+  ├── API Jira (polling directo)
+  ├── GitHub MCP (futuro: crea branch, PR)
   ↓ descompone el ticket
   ┌────┼────┬────────┐
   ↓    ↓    ↓        ↓
@@ -20,7 +20,7 @@ Agent Agent Agent  Agent
   │    (strands_tools: file_read, file_write, editor, shell)
   └────┼────┴────────┘
        ↓ código generado
-  Git Branch + Pull Request (via MCP GitHub)
+  Git Branch + Pull Request (via GitHub API)
        ↓
   CI/CD Pipeline
        ↓ tests automáticos
@@ -36,7 +36,7 @@ Agent Agent Agent  Agent
 - **Human-in-the-loop**: El código generado NUNCA va directo a producción. Siempre pasa por PR + review humano.
 - **Modelo económico**: MiniMax M2.7 como LLM principal via API OpenAI-compatible.
 - **Cloud-agnostic**: Docker + PostgreSQL en local y producción. Sin dependencia de servicios cloud específicos.
-- **MCP-first**: Jira y GitHub se integran via MCP servers, no APIs directas.
+- **API-first**: Jira se integra via API REST directa; MCP para futuras herramientas.
 - **Guardrails de billing**: Timeouts, límites de iteraciones y token budgets por agente para evitar loops infinitos.
 - **Strands tools**: Los agentes usan `strands_tools` (file_read, file_write, editor, shell) para operar sobre el código.
 - **Observable**: Dashboard Canvas 2D en tiempo real via Socket.IO.
@@ -54,7 +54,7 @@ Agent Agent Agent  Agent
 - **FastAPI (Python 3.12+)**
 - **Strands Agents SDK** — orquestación multi-agente
 - **strands_tools** — tools nativos: `file_read`, `file_write`, `editor`, `shell`, `python_repl`, `current_time`
-- **MCP clients** — Jira (`mcp-atlassian`) y GitHub (`github-mcp-server`) como tools de los agentes
+- **MCP clients** — GitHub (`github-mcp-server`) como tools de los agentes (futuro)
 - **Pydantic** — validación de datos
 - **python-socketio** — servidor Socket.IO
 - **SQLAlchemy + asyncpg** — ORM para PostgreSQL
@@ -76,8 +76,8 @@ Agent Agent Agent  Agent
 │                                                          │
 │  ┌──────────┐  ┌──────────────────────────────────────┐ │
 │  │PostgreSQL│  │ FastAPI + Strands SDK                 │ │
-│  │  :5432   │  │   ├── MCP: mcp-atlassian (Jira)      │ │
-│  └──────────┘  │   ├── MCP: github-mcp-server          │ │
+│  │  :5432   │  │   ├── Jira polling (direct API)      │ │
+│  └──────────┘  │   ├── MCP: github-mcp-server (futuro) │ │
 │       ↑        │   ├── strands_tools (file/shell/edit) │ │
 │       └────────│   └── Socket.IO server                │ │
 │                └──────────┬───────────────────────────┘ │
@@ -115,6 +115,7 @@ services:
       JIRA_URL: ${JIRA_URL}
       JIRA_API_TOKEN: ${JIRA_API_TOKEN}
       JIRA_EMAIL: ${JIRA_EMAIL}
+      JIRA_POLL_INTERVAL_MINUTES: ${JIRA_POLL_INTERVAL_MINUTES:-5}
       GITHUB_TOKEN: ${GITHUB_TOKEN}
     depends_on:
       - db
@@ -152,7 +153,7 @@ Para producción, agregar:
 
 ---
 
-## 3. Modelo de Datos
+## 3. Modelo de Datos (✅ Completado)
 
 PostgreSQL 16 con SQLAlchemy async.
 
@@ -233,47 +234,57 @@ class AgentEvent(Base):
 
 ---
 
-## 4. Integración con Jira via MCP
+## 4. Integración con Jira via API Polling (✅ Completado)
 
-### MCP Server: mcp-atlassian
+El polling de Jira usa **API REST directa** para mayor confiabilidad. MCP (`mcp-atlassian`) **no se usa actualmente** — se considera para futuras integraciones con otras herramientas.
 
-En lugar de integrar Jira via API directa o webhooks, los agentes acceden a Jira como **MCP tools** usando [`mcp-atlassian`](https://github.com/sooperset/mcp-atlassian) (72 tools, soporta Jira Cloud y Server/Data Center).
+#### JiraStatus Enum
 
 ```python
-from mcp import stdio_client, StdioServerParameters
-from strands.tools.mcp import MCPClient
+# app/utils/jira_status.py
+from enum import StrEnum
 
-# MCP client para Jira (stdio transport — corre como subproceso)
-jira_mcp = MCPClient(
-    lambda: stdio_client(
-        StdioServerParameters(
-            command="uvx",
-            args=["mcp-atlassian"],
-            env={
-                "JIRA_URL": JIRA_URL,
-                "JIRA_API_TOKEN": JIRA_API_TOKEN,
-                "JIRA_EMAIL": JIRA_EMAIL,
-            },
-        )
-    ),
-    prefix="jira",  # tools se exponen como jira_search_issues, jira_get_issue, etc.
-)
+class JiraStatus(StrEnum):
+    TO_DO = "To Do"
+    IN_PROGRESS = "In Progress"
+    DONE = "Done"
+```
+
+#### Polling: Direct REST API
+
+El polling usa **API REST directa** para mayor confiabilidad:
+
+```python
+# app/mcp/polling.py
+import base64
+import urllib.parse
+import urllib.request
+
+async def search_ready_for_dev_tickets():
+    auth = base64.b64encode(f"{email}:{api_token}".encode()).decode()
+    jql = urllib.parse.quote(f"status = '{JiraStatus.TO_DO}' ORDER BY created ASC")
+    url = f"{JIRA_URL}/rest/api/3/search/jql?jql={jql}&maxResults=10"
+    # Usa urllib.request directo para polling
 ```
 
 #### Tools de Jira disponibles para los agentes
 
 | MCP Tool | Uso en el pipeline |
 |---|---|
-| `jira_search_issues` | Buscar tickets "Ready for Dev" (JQL) |
+| `jira_search_issues` | Buscar tickets por JQL |
 | `jira_get_issue` | Leer detalle completo del ticket |
 | `jira_update_issue` | Cambiar estado (In Progress, Done, Blocked) |
 | `jira_add_comment` | Comentar progreso, errores, link al PR |
 | `jira_get_comments` | Leer comentarios/contexto adicional del ticket |
 | `jira_add_issues_to_sprint` | Organización de sprint |
 
-### MCP Server: GitHub
+**Nota:** Jira tools no están implementados via MCP. Futura integración via webhook de Jira.
 
-Para crear branches y PRs, se usa el MCP server oficial de GitHub:
+### MCP Servers (Futuro)
+
+#### GitHub MCP
+
+Para crear branches y PRs, se usará el MCP server oficial de GitHub:
 
 ```python
 from mcp.client.streamable_http import streamablehttp_client
@@ -288,38 +299,19 @@ github_mcp = MCPClient(
 )
 ```
 
-### Trigger: Polling o Webhook
+### Trigger: Polling (MVP) + Webhook (Futuro)
 
-Para pruebas locales, el orquestador hace **polling** a Jira via MCP buscando tickets en estado "Ready for Dev":
+**MVP (actual):** El polling busca tickets "To Do" cada N minutos usando API REST directa.
 
-```python
-# Endpoint manual para trigger local
-@app.post("/trigger/{ticket_id}")
-async def trigger_pipeline(ticket_id: str):
-    """Trigger manual: lanza pipeline para un ticket específico."""
-    session_id = await launch_agent_pipeline(ticket_id)
-    return {"session_id": session_id}
-
-# Polling automático (opcional, para demo)
-async def poll_jira_for_ready_tickets():
-    """Busca tickets 'Ready for Dev' cada N minutos via MCP."""
-    # El orquestador usa jira_search_issues internamente
-    orchestrator(
-        "Search Jira for issues with status 'Ready for Dev' "
-        "in project PROJ. For each one, start the development pipeline."
-    )
-```
-
-Para producción se puede agregar un **Jira webhook → API Gateway → FastAPI** que invoque el mismo pipeline, pero el agente sigue usando MCP para leer/actualizar el ticket.
+**Futuro:** Jira webhook → API Gateway → FastAPI para detección en tiempo real.
 
 ### Ciclo de vida del ticket
 
 | Evento | Acción (via MCP tools) |
 |---|---|
-| Ticket detectado | `jira_get_issue` → lee contexto completo |
+| Ticket detectado (polling) | API directa → `launch_agent_pipeline(ticket_id)` |
 | Pipeline iniciado | `jira_update_issue` → "In Progress" + `jira_add_comment` |
 | PR creado | `jira_add_comment` → link al PR |
-| Tests pasaron | `jira_add_comment` → resultados |
 | Tests fallaron | `jira_add_comment` + `jira_update_issue` → "Blocked" |
 | Review aprobado | `jira_update_issue` → "Done" |
 
@@ -345,7 +337,7 @@ minimax = OpenAIModel(
 
 ### 5.2 Tools: strands_tools + MCP
 
-Los agentes usan una combinación de **strands_tools nativos** (operaciones sobre archivos/código) y **MCP clients** (Jira, GitHub).
+Los agentes usan una combinación de **strands_tools nativos** (operaciones sobre archivos/código) y **MCP clients** (solo GitHub en el futuro).
 
 ```python
 from strands import Agent
@@ -353,22 +345,7 @@ from strands.tools.mcp import MCPClient
 from strands_tools import file_read, file_write, editor, shell, python_repl, current_time
 from mcp import stdio_client, StdioServerParameters
 
-# --- MCP Clients ---
-jira_mcp = MCPClient(
-    lambda: stdio_client(
-        StdioServerParameters(
-            command="uvx",
-            args=["mcp-atlassian"],
-            env={
-                "JIRA_URL": JIRA_URL,
-                "JIRA_API_TOKEN": JIRA_API_TOKEN,
-                "JIRA_EMAIL": JIRA_EMAIL,
-            },
-        )
-    ),
-    prefix="jira",
-)
-
+# --- MCP Clients (futuro) ---
 github_mcp = MCPClient(
     lambda: stdio_client(
         StdioServerParameters(
@@ -381,7 +358,7 @@ github_mcp = MCPClient(
 )
 
 # --- Tools por tipo de agente ---
-ORCHESTRATOR_TOOLS = [jira_mcp, github_mcp]          # MCP: lee/actualiza Jira, crea PR
+ORCHESTRATOR_TOOLS = [github_mcp]                    # MCP: crea PR (futuro)
 DEV_TOOLS = [file_read, file_write, editor, shell]    # strands_tools: opera sobre código
 QA_TOOLS = [file_read, file_write, shell, python_repl] # strands_tools: escribe y corre tests
 ```
@@ -396,12 +373,8 @@ QA_TOOLS = [file_read, file_write, shell, python_repl] # strands_tools: escribe 
 | `shell` | strands_tools | QA (correr tests), Backend (migrations) |
 | `python_repl` | strands_tools | QA (ejecutar tests inline) |
 | `current_time` | strands_tools | Orquestador (timestamps en logs) |
-| `jira_get_issue` | MCP (mcp-atlassian) | Orquestador |
-| `jira_update_issue` | MCP (mcp-atlassian) | Orquestador |
-| `jira_add_comment` | MCP (mcp-atlassian) | Orquestador |
-| `jira_search_issues` | MCP (mcp-atlassian) | Orquestador |
-| `github_create_branch` | MCP (github) | Orquestador |
-| `github_create_pull_request` | MCP (github) | Orquestador |
+| `github_create_branch` | MCP (github, futuro) | Orquestador |
+| `github_create_pull_request` | MCP (github, futuro) | Orquestador |
 
 ### 5.3 Definición de Agentes
 
@@ -409,7 +382,7 @@ Cada agente tiene un rol claro, system prompt acotado, y tools específicos. Los
 
 #### Agente Arquitecto (Orquestador)
 
-Recibe el ticket Jira (via MCP), analiza requisitos, descompone en subtareas y coordina a los demás agentes (pasados como tools).
+Recibe el ticket Jira (via API directa), analiza requisitos, descompone en subtareas y coordina a los demás agentes (pasados como tools).
 
 ```python
 from strands import Agent
@@ -424,16 +397,16 @@ orchestrator = Agent(
 You receive Jira ticket IDs and orchestrate their implementation.
 
 Workflow:
-1. Use jira_get_issue to read the ticket details
-2. Use jira_update_issue to set status to "In Progress"
-3. Use jira_add_comment to log that work has started
+1. Use Jira API to read ticket details (jira_get_issue equivalent)
+2. Use Jira API to set status to "In Progress" (jira_update_issue equivalent)
+3. Use Jira API to log that work has started (jira_add_comment equivalent)
 4. Analyze requirements and determine which agents to call
 5. Call backend_agent and/or frontend_agent with specific tasks
 6. Call qa_agent to validate the generated code
 7. Use shell to run: git checkout -b agent/<ticket-id> && git add . && git commit
 8. Use github_create_pull_request to create the PR
-9. Use jira_add_comment to post the PR link
-10. If any agent fails twice, use jira_update_issue to set "Blocked" and jira_add_comment with error
+9. Use Jira API to post the PR link (jira_add_comment equivalent)
+10. If any agent fails twice, use Jira API to set "Blocked" and log error
 
 Available agents:
 - backend_agent: Server-side code, APIs, database models, business logic
@@ -441,7 +414,7 @@ Available agents:
 - qa_agent: Unit tests, integration tests, runs test suites
 """,
     tools=[
-        *ORCHESTRATOR_TOOLS,    # jira_mcp, github_mcp
+        *ORCHESTRATOR_TOOLS,    # github_mcp (futuro)
         current_time,
         shell,                  # para git operations
         backend_agent,
@@ -948,8 +921,8 @@ docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs -f db
 
-# 5. Verificar conexión a Jira MCP
-docker compose exec backend uvx mcp-atlassian --info
+# 5. Verificar conexión a Jira API
+docker compose exec backend curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" "$JIRA_URL/rest/api/3/myself" | head -c 200
 ```
 
 #### Detener el sistema
@@ -996,7 +969,7 @@ curl -f http://localhost:8000/socket.io/?EIO=4&transport=polling
 |---|---|---|
 | **PostgreSQL** | Conexión activa | `docker compose exec db psql -U agent -d multi_agent -c "SELECT 1"` |
 | **MiniMax API** | API responde | `curl -s -o /dev/null -w "%{http_code}" https://api.minimax.io/v1/models` |
-| **Jira MCP** | Tool disponible | `docker compose exec backend python -c "from mcp import stdio_client; print('MCP OK')"` |
+| **Jira API** | API responde | `curl -s -o /dev/null -w "%{http_code}" https://tu-domain.atlassian.net/rest/api/3/myself` |
 | **GitHub MCP** | Token válido | `gh auth status` |
 | **strands_tools** | Herramientas cargan | `python -c "from strands_tools import file_read, file_write; print('OK')"` |
 
@@ -1194,7 +1167,16 @@ print('MCP client importado OK')
 
 > Las siguientes funcionalidades **no son parte del MVP** pero están contempladas para iteraciones futuras.
 
-### 10.1 Agentes de Remediación de Producción
+### 10.1 Jira Webhook Integration
+
+Reemplazar polling por **Jira webhooks** para detección en tiempo real de tickets:
+
+- Jira webhook → API Gateway (Cloudflare/Railway) → FastAPI endpoint
+- Elimina delay del polling interval
+- Más eficiente en llamadas API
+- Requiere: endpoint expuesto públicamente o tunnel (ngrok/cloudflared)
+
+### 10.2 Agentes de Remediación de Producción
 
 Usar agentes para **diagnosticar y resolver automáticamente errores de producción**:
 
@@ -1273,9 +1255,7 @@ DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
 - [Strands Tools (file_read, file_write, editor, shell, etc.)](https://github.com/strands-agents/tools)
 - [Strands — Custom Model Providers](https://github.com/strands-agents/docs/blob/main/src/content/docs/user-guide/concepts/model-providers/custom_model_provider.mdx)
 
-### MCP Servers
-- [mcp-atlassian (Jira + Confluence MCP server)](https://github.com/sooperset/mcp-atlassian)
-- [Atlassian Remote MCP Server (oficial)](https://www.atlassian.com/blog/announcements/remote-mcp-server)
+### MCP Servers (Futuro)
 - [GitHub MCP Server (@modelcontextprotocol/server-github)](https://github.com/modelcontextprotocol/servers/tree/main/src/github)
 
 ### LLM
