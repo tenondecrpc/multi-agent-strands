@@ -40,14 +40,7 @@ async def disconnect(sid):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting Jira polling service...")
-    try:
-        from app.mcp.polling import start_jira_polling
-
-        start_jira_polling()
-        logger.info("Jira polling started successfully")
-    except Exception as e:
-        logger.error(f"Failed to start Jira polling: {e}")
+    logger.info("Application started - Jira webhook endpoint available")
     yield
     logger.info("Shutting down...")
 

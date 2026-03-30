@@ -6,7 +6,6 @@ pydantic>=2.0.0
 python-dotenv>=1.0.0
 alembic>=1.13.0
 strands-agents>=1.33.0
-mcp>=1.0.0
 openai>=1.30.0
 python-socketio>=5.10.0,<6.0
 python-engineio>=4.8.0,<5.0

@@ -8,7 +8,7 @@ import app.config  # noqa: F401 - ensures .env is loaded
 from strands import Agent
 from strands.models import OpenAIModel
 
-from app.mcp import get_jira_tools, get_github_tools
+from app.agents.jira_tools import get_jira_tools
 from app.utils import JiraStatus
 
 logger = logging.getLogger(__name__)
@@ -29,12 +29,13 @@ Available Development Agents:
 
 When working with Jira tickets:
 - Use jira_get_issue to fetch full ticket details
-- Use jira_update_issue to change ticket status or fields
 - Use jira_add_comment to communicate updates on tickets
-- Search for tickets with "{to_do_status}" status to initiate workflows
+- Use jira_transition_issue to change ticket status
+- Use jira_search_issues to find tickets with JQL queries
+- Use jira_enrich_ticket to get full ticket data with comments
 
 When coordinating development:
-1. Analyze the ticket requirements
+1. Analyze the ticket requirements using Jira tools
 2. Delegate backend tasks to backend_agent
 3. Delegate frontend tasks to frontend_agent
 4. Delegate testing to qa_agent
@@ -63,8 +64,9 @@ def create_model() -> OpenAIModel:
 
 
 async def create_orchestrator_agent() -> Agent:
-    jira_tools = await get_jira_tools()
-    github_tools = await get_github_tools()
+    jira_tools = get_jira_tools()
+    github_tools = []  # TODO: implement GitHub REST client
+
     model = create_model()
 
     from app.agents.backend_agent import create_backend_agent
@@ -87,11 +89,7 @@ async def create_orchestrator_agent() -> Agent:
     )
     qa_agent_tool = _agent_as_tool(qa_agent, "qa_agent", "QA agent for running tests")
 
-    all_tools = (
-        jira_tools
-        + github_tools
-        + [backend_agent_tool, frontend_agent_tool, qa_agent_tool]
-    )
+    all_tools = jira_tools + [backend_agent_tool, frontend_agent_tool, qa_agent_tool]
 
     return Agent(
         system_prompt=ORCHESTRATOR_SYSTEM_PROMPT,

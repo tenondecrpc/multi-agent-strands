@@ -1,50 +1,49 @@
+from __future__ import annotations
+
+import logging
 from typing import Any
 
-from app.mcp.jira_client import JiraMCPClient, get_jira_client
+from app.services.jira_rest_client import JiraRestClient, get_jira_client
+
+logger = logging.getLogger(__name__)
 
 
 class JiraService:
-    def __init__(self, client: JiraMCPClient | None = None):
+    def __init__(self, client: JiraRestClient | None = None):
         self._client = client
 
-    async def get_client(self) -> JiraMCPClient:
+    async def get_client(self) -> JiraRestClient:
         if self._client is None:
             self._client = await get_jira_client()
         return self._client
 
     async def get_issue(self, issue_key: str) -> dict[str, Any]:
         client = await self.get_client()
-        result = await client.call_tool("get_issue", {"issueKey": issue_key})
-        return self._parse_issue_result(result)
+        data = await client.get_issue(issue_key)
+        return self._transform_issue(data)
 
     async def search_issues(
         self, jql: str, max_results: int = 50
     ) -> list[dict[str, Any]]:
         client = await self.get_client()
-        result = await client.call_tool(
-            "search_issues", {"jql": jql, "maxResults": max_results}
-        )
-        return self._parse_search_result(result)
+        issues = await client.search_issues(jql, max_results)
+        return [self._transform_issue(i) for i in issues]
 
     async def get_issue_comments(self, issue_key: str) -> list[dict[str, Any]]:
         client = await self.get_client()
-        result = await client.call_tool("get_comments", {"issueKey": issue_key})
-        return self._parse_comments_result(result)
+        comments = await client.get_comments(issue_key)
+        return [self._transform_comment(c) for c in comments]
 
     async def add_comment(self, issue_key: str, comment: str) -> dict[str, Any]:
         client = await self.get_client()
-        await client.call_tool(
-            "add_comment", {"issueKey": issue_key, "comment": comment}
-        )
+        await client.add_comment(issue_key, comment)
         return {"success": True, "issue_key": issue_key}
 
     async def transition_issue(
         self, issue_key: str, transition_id: str
     ) -> dict[str, Any]:
         client = await self.get_client()
-        await client.call_tool(
-            "transition_issue", {"issueKey": issue_key, "transitionId": transition_id}
-        )
+        await client.transition_issue(issue_key, transition_id)
         return {"success": True, "issue_key": issue_key, "transition_id": transition_id}
 
     async def enrich_ticket_data(self, issue_key: str) -> dict[str, Any]:
@@ -67,49 +66,49 @@ class JiraService:
             "updated": issue_data.get("updated", ""),
         }
 
-    def _parse_issue_result(self, result: Any) -> dict[str, Any]:
-        if hasattr(result, "content") and isinstance(result.content, list):
-            for item in result.content:
-                if hasattr(item, "text"):
-                    try:
-                        import json
+    def _transform_issue(self, data: dict[str, Any]) -> dict[str, Any]:
+        fields = data.get("fields", {})
+        return {
+            "key": data.get("key", ""),
+            "summary": fields.get("summary", ""),
+            "description": self._extract_text(fields.get("description")),
+            "status": fields.get("status", {}).get("name", ""),
+            "issue_type": fields.get("issuetype", {}).get("name", ""),
+            "priority": fields.get("priority", {}).get("name", ""),
+            "assignee": fields.get("assignee", {}).get("displayName", ""),
+            "reporter": fields.get("reporter", {}).get("displayName", ""),
+            "labels": fields.get("labels", []),
+            "components": [c.get("name", "") for c in fields.get("components", [])],
+            "created": fields.get("created", ""),
+            "updated": fields.get("updated", ""),
+        }
 
-                        return json.loads(item.text)
-                    except (json.JSONDecodeError, TypeError):
-                        pass
-        return {}
+    def _transform_comment(self, data: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": data.get("id", ""),
+            "author": data.get("author", {}).get("displayName", ""),
+            "body": self._extract_text(data.get("body")),
+            "created": data.get("created", ""),
+        }
 
-    def _parse_search_result(self, result: Any) -> list[dict[str, Any]]:
-        if hasattr(result, "content") and isinstance(result.content, list):
-            for item in result.content:
-                if hasattr(item, "text"):
-                    try:
-                        import json
+    def _extract_text(self, content: Any) -> str:
+        if not content:
+            return ""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, dict):
+            return self._extract_text_from_doc(content)
+        if isinstance(content, list):
+            return " ".join(self._extract_text(c) for c in content)
+        return str(content)
 
-                        data = json.loads(item.text)
-                        if isinstance(data, list):
-                            return data
-                        elif isinstance(data, dict) and "issues" in data:
-                            return data["issues"]
-                    except (json.JSONDecodeError, TypeError):
-                        pass
-        return []
-
-    def _parse_comments_result(self, result: Any) -> list[dict[str, Any]]:
-        if hasattr(result, "content") and isinstance(result.content, list):
-            for item in result.content:
-                if hasattr(item, "text"):
-                    try:
-                        import json
-
-                        data = json.loads(item.text)
-                        if isinstance(data, list):
-                            return data
-                        elif isinstance(data, dict) and "comments" in data:
-                            return data["comments"]
-                    except (json.JSONDecodeError, TypeError):
-                        pass
-        return []
+    def _extract_text_from_doc(self, doc: dict[str, Any]) -> str:
+        if doc.get("type") == "text":
+            return doc.get("text", "")
+        content = doc.get("content", [])
+        if isinstance(content, list):
+            return " ".join(self._extract_text_from_doc(c) for c in content)
+        return ""
 
 
 jira_service = JiraService()
