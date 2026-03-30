@@ -60,7 +60,7 @@ def create_model() -> OpenAIModel:
         base_url=os.getenv("MINIMAX_API_URL", "https://api.minimax.chat/v1"),
     )
     model_name = os.getenv("OPENAI_MODEL", "minimax/minimax-m2.7")
-    return OpenAIModel(client=client, model_config={"model": model_name})
+    return OpenAIModel(client=client, model_id=model_name)
 
 
 async def create_orchestrator_agent() -> Agent:
@@ -103,7 +103,7 @@ def _agent_as_tool(agent: Agent, name: str, description: str):
 
     @tool(description=description, name=name)
     async def agent_tool(task: str) -> str:
-        result = await agent.run(task)
+        result = await agent.invoke_async(task)
         return str(result)
 
     return agent_tool

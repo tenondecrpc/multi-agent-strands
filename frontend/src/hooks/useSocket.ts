@@ -1,4 +1,5 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useMemo } from "react";
+import { shallow } from "zustand/shallow";
 import {
   socket,
   connectSocket,
@@ -101,10 +102,29 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
 
-    const onPipelineStarted = (data: {
-      session_id: string;
-      ticket_id: string;
-    }) => {
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    joinSession(sessionId);
+
+    const onPipelineStarted = (data: { session_id: string; ticket_id: string }) => {
+      console.log('[Socket] pipeline_started received:', data);
+      if (data.ticket_id) {
+        updateAgent({
+          id: "orchestrator",
+          name: "Orchestrator",
+          role: "orchestrator",
+          state: "working",
+          task: `Processing ${data.ticket_id}`,
+          progress: 0.1,
+        });
+      }
       addLog({
         id: `${Date.now()}-${Math.random()}`,
         agent_id: "system",
@@ -112,110 +132,62 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
         level: "info",
         timestamp: new Date().toISOString(),
       });
-      startAgentSequence(data.ticket_id);
     };
 
-    const onPipelineCompleted = (data: {
-      session_id: string;
-      ticket_id: string;
-    }) => {
-      clearAnimations();
-      DEFAULT_AGENTS.forEach((agent) => {
-        updateAgent({ ...agent, state: "success", progress: 1 });
-      });
-      addLog({
-        id: `${Date.now()}-${Math.random()}`,
-        agent_id: "system",
-        message: `Pipeline completed for ticket: ${data.ticket_id}`,
-        level: "info",
-        timestamp: new Date().toISOString(),
-      });
-    };
+    const onAgentEvent = (event: any) => {
+      console.log('[Socket] Received agent_event:', event);
+      const payload = event.payload || {};
 
-    const onPipelineError = (data: {
-      session_id: string;
-      ticket_id: string;
-      error: string;
-    }) => {
-      clearAnimations();
-      DEFAULT_AGENTS.forEach((agent) => {
-        updateAgent({ ...agent, state: "error" });
-      });
-      addLog({
-        id: `${Date.now()}-${Math.random()}`,
-        agent_id: "system",
-        message: `Pipeline error: ${data.error}`,
-        level: "error",
-        timestamp: new Date().toISOString(),
-      });
-    };
+      if (event.type === "agent_state_change") {
+        const agentId = payload.agent_id || event.agent_id;
+        if (!agentId) return;
 
-    socket.on("pipeline_started", onPipelineStarted);
-    socket.on("pipeline_completed", onPipelineCompleted);
-    socket.on("pipeline_error", onPipelineError);
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("pipeline_started", onPipelineStarted);
-      socket.off("pipeline_completed", onPipelineCompleted);
-      socket.off("pipeline_error", onPipelineError);
-    };
-  }, [clearAnimations, startAgentSequence, setStatus, addLog, updateAgent]);
-
-  useEffect(() => {
-    if (!sessionId) return;
-
-    joinSession(sessionId);
-
-    const onAgentEvent = (event: AgentEvent) => {
-      const payload = event.payload as AgentStateChangePayload | AgentLogPayload;
-
-      if (event.type === "agent_state_change" && "agent_id" in payload) {
-        const statePayload = payload as AgentStateChangePayload;
-        const existingAgent = DEFAULT_AGENTS.find(
-          (a) => a.id === statePayload.agent_id
-        );
+        const existingAgent = DEFAULT_AGENTS.find((a) => a.id === agentId);
         if (existingAgent) {
           updateAgent({
             ...existingAgent,
-            state: statePayload.new_state,
-            task: statePayload.task || existingAgent.task,
-            progress: statePayload.progress ?? existingAgent.progress,
+            state: payload.new_state || payload.state,
+            task: payload.task || existingAgent.task,
+            progress: payload.progress ?? existingAgent.progress,
           });
         }
       }
 
-      if (event.type === "agent_log" && "message" in payload) {
-        const logPayload = payload as AgentLogPayload;
+      if (event.type === "agent_log") {
         addLog({
           id: `${Date.now()}-${Math.random()}`,
-          agent_id: logPayload.agent_id,
-          message: logPayload.message,
-          level: logPayload.level,
-          timestamp: event.timestamp,
+          agent_id: payload.agent_id || event.agent_id,
+          message: payload.message,
+          level: payload.level || "info",
+          timestamp: event.timestamp || new Date().toISOString(),
         });
       }
 
       onEvent?.(event);
     };
 
+    socket.on("pipeline_started", onPipelineStarted);
     socket.on("agent_event", onAgentEvent);
 
     return () => {
       leaveSession(sessionId);
+      socket.off("pipeline_started", onPipelineStarted);
       socket.off("agent_event", onAgentEvent);
     };
   }, [sessionId, onEvent, updateAgent, addLog]);
 
-  const agents = useSessionStore((state) => Object.values(state.agentStates));
-  const logs = useSessionStore((state) => state.logs);
+  const agentStates = useSessionStore((state) => state.agentStates, shallow);
+  const logs = useSessionStore((state) => state.logs, shallow);
   const isConnected = useConnectionStore((state) => state.status === "connected");
+
+  const agents = useMemo(() => Object.values(agentStates), [agentStates]);
+  const agentList = agents.length > 0 ? agents : [];
+  const logList = logs.length > 0 ? logs : [];
 
   return {
     isConnected,
-    agents,
-    logs,
+    agents: agentList,
+    logs: logList,
     resetAgents,
   };
 }

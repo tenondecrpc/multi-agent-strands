@@ -66,6 +66,7 @@ class TicketState(Base):
         nullable=False, default=TicketStage.NEW
     )
     assigned_agent: Mapped[str] = mapped_column(String(100), nullable=True)
+    active_session_id: Mapped[str] = mapped_column(String(100), nullable=True)
     context_window: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, default=dict
     )

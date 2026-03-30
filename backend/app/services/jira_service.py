@@ -67,16 +67,16 @@ class JiraService:
         }
 
     def _transform_issue(self, data: dict[str, Any]) -> dict[str, Any]:
-        fields = data.get("fields", {})
+        fields = data.get("fields") or {}
         return {
             "key": data.get("key", ""),
             "summary": fields.get("summary", ""),
             "description": self._extract_text(fields.get("description")),
-            "status": fields.get("status", {}).get("name", ""),
-            "issue_type": fields.get("issuetype", {}).get("name", ""),
-            "priority": fields.get("priority", {}).get("name", ""),
-            "assignee": fields.get("assignee", {}).get("displayName", ""),
-            "reporter": fields.get("reporter", {}).get("displayName", ""),
+            "status": (fields.get("status") or {}).get("name", ""),
+            "issue_type": (fields.get("issuetype") or {}).get("name", ""),
+            "priority": (fields.get("priority") or {}).get("name", ""),
+            "assignee": (fields.get("assignee") or {}).get("displayName", ""),
+            "reporter": (fields.get("reporter") or {}).get("displayName", ""),
             "labels": fields.get("labels", []),
             "components": [c.get("name", "") for c in fields.get("components", [])],
             "created": fields.get("created", ""),

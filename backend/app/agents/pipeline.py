@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from typing import Any
+from uuid import UUID
 import uuid
 
 import app.config  # noqa: F401 - ensures .env is loaded
@@ -12,6 +13,7 @@ import app.config  # noqa: F401 - ensures .env is loaded
 from app.agents.orchestrator import create_orchestrator_agent
 from app.database import async_session_maker
 from app.events import (
+    emit_agent_event,
     emit_pipeline_completed,
     emit_pipeline_error,
     emit_pipeline_started,
@@ -124,7 +126,79 @@ async def create_event(
         session.add(event)
         await session.commit()
         await session.refresh(event)
-        return event
+
+    session_id_str = str(session_id)
+    if event_type == EventType.AGENT_STARTED:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_state_change",
+            {
+                "new_state": "working",
+                "task": payload.get("ticket_id", "") if payload else "",
+                "progress": 0.1,
+            },
+        )
+    elif event_type == EventType.AGENT_COMPLETED:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_state_change",
+            {"new_state": "success", "progress": 1},
+        )
+    elif event_type == EventType.AGENT_FAILED:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_state_change",
+            {
+                "new_state": "error",
+                "error": payload.get("error", "") if payload else "",
+            },
+        )
+    elif event_type == EventType.LOG:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_log",
+            payload,
+        )
+    elif event_type == EventType.TOOL_CALL:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_log",
+            {
+                "message": f"Tool call: {payload.get('tool_name', 'unknown')}",
+                "level": "info",
+            },
+        )
+    elif event_type == EventType.AGENT_COMPLETED:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_state_change",
+            {"new_state": "success", "progress": 1},
+        )
+    elif event_type == EventType.AGENT_FAILED:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_state_change",
+            {
+                "new_state": "error",
+                "error": payload.get("error", "") if payload else "",
+            },
+        )
+    elif event_type == EventType.LOG:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "agent_log",
+            payload,
+        )
+
+    return event
 
 
 async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
@@ -146,7 +220,7 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
         agent = await create_orchestrator_agent()
 
         result = await asyncio.wait_for(
-            agent.run(
+            agent(
                 f"Process Jira ticket {ticket_id}. Get the issue details, understand the requirements, and coordinate the development pipeline."
             ),
             timeout=guardrails.timeout_seconds,

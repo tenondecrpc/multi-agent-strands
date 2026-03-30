@@ -61,8 +61,12 @@ class JiraRestClient:
         self, jql: str, max_results: int = 50
     ) -> list[dict[str, Any]]:
         logger.info(f"Jira REST: Searching issues with jql: {jql}")
+        fields = "key,summary,status,issuetype,priority,assignee,reporter,labels,components,created,updated"
+        jql_encoded = jira_url_encode(jql)
+        fields_encoded = jira_url_encode(fields)
         data = await self._request(
-            "GET", f"search?jql={jira_url_encode(jql)}&maxResults={max_results}"
+            "GET",
+            f"search/jql?jql={jql_encoded}&maxResults={max_results}&fields={fields_encoded}",
         )
         return data.get("issues", [])
 

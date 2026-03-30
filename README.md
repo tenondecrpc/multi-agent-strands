@@ -100,8 +100,8 @@ docker compose down -v
 ### Restart / Clean Slate
 
 ```bash
-# Full restart with clean state (removes volumes + database)
-docker compose down -v && docker compose up -d && sleep 8 && curl http://localhost:8000/health
+# Full restart with clean state (removes volumes + database + reinitializes)
+docker compose down -v && docker compose up -d && sleep 5 && docker compose exec backend alembic upgrade head
 ```
 
 ### Container Management

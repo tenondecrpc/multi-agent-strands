@@ -30,7 +30,7 @@ def create_frontend_agent(model: OpenAIModel | None = None) -> Agent:
     if model is None:
         client = OpenAIModelProvider.get_client()
         model_name = os.getenv("OPENAI_MODEL", "minimax/minimax-m2.7")
-        model = OpenAIModel(client=client, model_config={"model": model_name})
+        model = OpenAIModel(client=client, model_id=model_name)
     return Agent(
         system_prompt=FRONTEND_AGENT_SYSTEM_PROMPT,
         tools=strands_tools,

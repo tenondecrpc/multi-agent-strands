@@ -72,7 +72,7 @@ export const Dashboard = ({ sessions: propSessions }: DashboardProps) => {
                 title={`Session ${session.session_id.slice(0, 8)}...`}
                 status={session.status.toLowerCase() as SessionState["status"]}
                 agentName={session.agents[0]?.name}
-                onClick={() => navigate(`/session/${session.session_id}`)}
+                onClick={() => navigate(`/session/${session.ticket_id}`)}
               />
             ))}
           </div>

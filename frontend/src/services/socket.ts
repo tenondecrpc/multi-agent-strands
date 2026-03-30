@@ -4,6 +4,8 @@ import type { AgentEvent, SessionState } from '../types/agent';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8000';
 const NAMESPACE = '/pipeline';
 
+console.log('[Socket] Initializing with URL:', `${SOCKET_URL}${NAMESPACE}`);
+
 interface ServerToClientEvents {
   pipeline_started: (data: { session_id: string; ticket_id: string }) => void;
   pipeline_completed: (data: { session_id: string; ticket_id: string; result: unknown }) => void;
@@ -20,10 +22,31 @@ interface ClientToServerEvents {
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${SOCKET_URL}${NAMESPACE}`, {
   autoConnect: false,
   transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+});
+
+socket.on('connect', () => {
+  console.log('[Socket] Connected! SID:', socket.id);
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('[Socket] Disconnected:', reason);
+});
+
+socket.on('connect_error', (error) => {
+  console.error('[Socket] Connection error:', error.message);
+});
+
+socket.on('error', (error) => {
+  console.error('[Socket] Error:', error);
 });
 
 export function connectSocket(): void {
+  console.log('[Socket] connectSocket() called, connected:', socket.connected);
   if (!socket.connected) {
+    console.log('[Socket] Calling socket.connect()...');
     socket.connect();
   }
 }
@@ -35,9 +58,11 @@ export function disconnectSocket(): void {
 }
 
 export function joinSession(sessionId: string): void {
+  console.log('[Socket] joinSession:', sessionId);
   socket.emit('join_session', { session_id: sessionId });
 }
 
 export function leaveSession(sessionId: string): void {
+  console.log('[Socket] leaveSession:', sessionId);
   socket.emit('leave_session', { session_id: sessionId });
 }

@@ -179,27 +179,70 @@ def process_ticket_task(
 
 
 def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any]:
+    import asyncio
+
     session_id = f"{task_data.ticket_id}-{task_data.agent_type}-{uuid.uuid4().hex[:8]}"
+    session_uuid = str(uuid.uuid4())
+    logger.info(f"Processing ticket {task_data.ticket_id} with session {session_id}")
 
-    with SyncSession() as db:
-        agent_session = AgentSession(
-            session_id=session_id,
-            ticket_id=task_data.ticket_id,
-            agent_type=ModelAgentType(task_data.agent_type),
-            status=AgentSessionStatus.RUNNING,
-        )
-        db.add(agent_session)
-        db.commit()
-        db.refresh(agent_session)
+    metadata = task_data.metadata or {}
+    existing_session_id = metadata.get("session_id")
 
-    logger.info(f"Created agent session {session_id} for ticket {task_data.ticket_id}")
+    if existing_session_id:
+        session_uuid = existing_session_id
+        logger.info(f"Using existing session: {session_uuid}")
+        with SyncSession() as db:
+            from sqlalchemy import update
 
-    return {
-        "ticket_id": task_data.ticket_id,
-        "agent_type": task_data.agent_type,
-        "session_id": session_id,
-        "processed": True,
-    }
+            stmt = (
+                update(AgentSession)
+                .where(AgentSession.id == session_uuid)
+                .values(status=AgentSessionStatus.RUNNING)
+            )
+            db.execute(stmt)
+            db.commit()
+    else:
+        with SyncSession() as db:
+            agent_session = AgentSession(
+                id=session_uuid,
+                session_id=session_id,
+                ticket_id=task_data.ticket_id,
+                agent_type=ModelAgentType(task_data.agent_type),
+                status=AgentSessionStatus.RUNNING,
+            )
+            db.add(agent_session)
+            db.commit()
+            logger.info(f"Saved agent session to DB: {session_id}")
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        from app.agents.pipeline import launch_agent_pipeline
+
+        result = loop.run_until_complete(launch_agent_pipeline(task_data.ticket_id))
+        logger.info(f"Pipeline result for {task_data.ticket_id}: {result}")
+        return {
+            "ticket_id": task_data.ticket_id,
+            "agent_type": task_data.agent_type,
+            "session_id": session_uuid,
+            "processed": True,
+            "result": result,
+        }
+    except Exception as e:
+        logger.exception(f"Pipeline failed for {task_data.ticket_id}: {e}")
+        with SyncSession() as db:
+            from sqlalchemy import update
+
+            stmt = (
+                update(AgentSession)
+                .where(AgentSession.id == session_uuid)
+                .values(status=AgentSessionStatus.FAILED)
+            )
+            db.execute(stmt)
+            db.commit()
+        raise
+    finally:
+        loop.close()
 
 
 @celery_app.task(
