@@ -7,6 +7,8 @@ import time
 from typing import Any
 from uuid import UUID
 
+import app.config  # noqa: F401 - ensures .env is loaded
+
 from app.agents.orchestrator import create_orchestrator_agent
 from app.database import async_session_maker
 from app.events import (

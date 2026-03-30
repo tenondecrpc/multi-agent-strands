@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import os
 
+import app.config  # noqa: F401 - ensures .env is loaded
+
 from strands import Agent
 from strands.models import OpenAIModel
 

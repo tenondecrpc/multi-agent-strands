@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+import app.config  # noqa: F401 - ensures .env is loaded
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 

@@ -1,16 +1,13 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-from dotenv import load_dotenv
+import app.config  # noqa: F401 - loads .env at import
+
 from fastapi import FastAPI
 from socketio import ASGIApp
 
 from app.events import sio
-
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(env_path)
 
 logging.basicConfig(
     level=logging.INFO,

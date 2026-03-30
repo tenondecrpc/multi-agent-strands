@@ -47,7 +47,7 @@ async def search_ready_for_dev_tickets() -> list[dict[str, Any]]:
 
 
 async def poll_jira_and_trigger() -> None:
-    from app.agents.orchestrator import launch_agent_pipeline
+    from app.agents.pipeline import launch_agent_pipeline
 
     logger.info(f"Jira polling started. Interval: {JIRA_POLL_INTERVAL_MINUTES} minutes")
     while True:
@@ -57,9 +57,17 @@ async def poll_jira_and_trigger() -> None:
                 ticket_id = ticket.get("key") or ticket.get("issueKey")
                 if ticket_id:
                     logger.info(f"Triggering pipeline for ticket: {ticket_id}")
-                    await launch_agent_pipeline(ticket_id)
+                    try:
+                        await launch_agent_pipeline(ticket_id)
+                    except Exception as e:
+                        logger.error(
+                            f"Error in launch_agent_pipeline: {type(e).__name__}: {e}"
+                        )
+                        import traceback
+
+                        traceback.print_exc()
         except Exception as e:
-            logger.error(f"Error in Jira polling: {e}")
+            logger.error(f"Error in Jira polling: {type(e).__name__}: {e}")
         await asyncio.sleep(JIRA_POLL_INTERVAL_MINUTES * 60)
 
 
