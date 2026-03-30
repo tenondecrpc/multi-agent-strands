@@ -1,74 +1,74 @@
-# Sistema Multi-Agente para Desarrollo de Software via Jira
+# Multi-Agent System for Software Development via Jira
 
-## 1. Visión General
+## 1. Overview
 
-Sistema multi-agente que se activa automáticamente cuando se crea o actualiza un ticket en Jira. Agentes especializados de desarrollo de software (Arquitecto, Backend, Frontend, QA) analizan el ticket, generan código, ejecutan tests y crean un Pull Request. **Un humano siempre revisa y aprueba antes de merge a producción.**
+Multi-agent system that activates automatically when a Jira ticket is created or updated. Specialized software development agents (Architect, Backend, Frontend, QA) analyze the ticket, generate code, run tests, and create a Pull Request. **A human always reviews and approves before merging to production.**
 
-### Flujo Principal
+### Main Flow
 
 ```
-Jira Ticket (polling detecta "To Do")
+Jira Ticket (polling detects "To Do")
        ↓
 Strands SDK Orchestrator Agent
-  ├── API Jira (polling directo)
-  ├── GitHub MCP (futuro: crea branch, PR)
-  ↓ descompone el ticket
+  ├── Jira API (direct polling)
+  ├── GitHub MCP (future: create branch, PR)
+  ↓ decomposes the ticket
   ┌────┼────┬────────┐
   ↓    ↓    ↓        ↓
 Arch  Back  Front    QA
 Agent Agent Agent  Agent
   │    (strands_tools: file_read, file_write, editor, shell)
   └────┼────┴────────┘
-       ↓ código generado
+       ↓ generated code
   Git Branch + Pull Request (via GitHub API)
        ↓
   CI/CD Pipeline
-       ↓ tests automáticos
+       ↓ automated tests
   Human Review & Approve
        ↓
-  Runbook: Validación y Documentación
+  Runbook: Validation and Documentation
        ↓
-  Merge → Deploy a Prod
+  Merge → Deploy to Prod
 ```
 
-### Principios
+### Principles
 
-- **Human-in-the-loop**: El código generado NUNCA va directo a producción. Siempre pasa por PR + review humano.
-- **Modelo económico**: MiniMax M2.7 como LLM principal via API OpenAI-compatible.
-- **Cloud-agnostic**: Docker + PostgreSQL en local y producción. Sin dependencia de servicios cloud específicos.
-- **API-first**: Jira se integra via API REST directa; MCP para futuras herramientas.
-- **Guardrails de billing**: Timeouts, límites de iteraciones y token budgets por agente para evitar loops infinitos.
-- **Strands tools**: Los agentes usan `strands_tools` (file_read, file_write, editor, shell) para operar sobre el código.
-- **Observable**: Dashboard Canvas 2D en tiempo real via Socket.IO.
+- **Human-in-the-loop**: Generated code NEVER goes directly to production. Always passes through PR + human review.
+- **Cost-effective**: MiniMax M2.7 as main LLM via OpenAI-compatible API.
+- **Cloud-agnostic**: Docker + PostgreSQL locally and in production. No dependency on specific cloud services.
+- **API-first**: Jira integrates via direct REST API; MCP for future tools.
+- **Billing guardrails**: Timeouts, iteration limits, and token budgets per agent to avoid infinite loops.
+- **Strands tools**: Agents use `strands_tools` (file_read, file_write, editor, shell) to operate on code.
+- **Observable**: Real-time 2D Canvas dashboard via Socket.IO.
 
 ---
 
-## 2. Stack Tecnológico (MVP) (✅ Completado)
+## 2. Tech Stack (MVP) (✅ Completed)
 
 ### Frontend
 - **React + Vite + TypeScript**
-- **Socket.IO client** para eventos en tiempo real
-- **Canvas 2D (SVG + CSS animations)** para dashboard de agentes
+- **Socket.IO client** for real-time events
+- **Canvas 2D (SVG + CSS animations)** for agent dashboard
 
 ### Backend
 - **FastAPI (Python 3.12+)**
-- **Strands Agents SDK** — orquestación multi-agente
-- **strands_tools** — tools nativos: `file_read`, `file_write`, `editor`, `shell`, `python_repl`, `current_time`
-- **MCP clients** — GitHub (`github-mcp-server`) como tools de los agentes (futuro)
-- **Pydantic** — validación de datos
-- **python-socketio** — servidor Socket.IO
-- **SQLAlchemy + asyncpg** — ORM para PostgreSQL
+- **Strands Agents SDK** — multi-agent orchestration
+- **strands_tools** — native tools: `file_read`, `file_write`, `editor`, `shell`, `python_repl`, `current_time`
+- **MCP clients** — GitHub (`github-mcp-server`) as agent tools (future)
+- **Pydantic** — data validation
+- **python-socketio** — Socket.IO server
+- **SQLAlchemy + asyncpg** — ORM for PostgreSQL
 
 ### LLM
-- **MiniMax M2.7** via API OpenAI-compatible, dos proveedores interchangeably:
+- **MiniMax M2.7** via OpenAI-compatible API, two providers interchangeably:
   - `https://api.minimax.io/v1` (MiniMax official)
   - `https://openrouter.ai/minimax/minimax-m2.7` (OpenRouter)
-- Integración con Strands via `OpenAIModel` provider (sin custom provider necesario)
+- Integration with Strands via `OpenAIModel` provider (no custom provider needed)
 
-### Base de Datos
-- **PostgreSQL 16** — tanto en local (Docker) como en producción (cualquier proveedor: RDS, Cloud SQL, self-hosted, etc.)
+### Database
+- **PostgreSQL 16** — both locally (Docker) and in production (any provider: RDS, Cloud SQL, self-hosted, etc.)
 
-### Entorno (Docker Compose)
+### Environment (Docker Compose)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -77,12 +77,12 @@ Agent Agent Agent  Agent
 │  ┌──────────┐  ┌──────────────────────────────────────┐ │
 │  │PostgreSQL│  │ FastAPI + Strands SDK                 │ │
 │  │  :5432   │  │   ├── Jira polling (direct API)      │ │
-│  └──────────┘  │   ├── MCP: github-mcp-server (futuro) │ │
-│       ↑        │   ├── strands_tools (file/shell/edit) │ │
+│  └──────────┘  │   ├── MCP: github-mcp-server (future)│ │
+│       ↑        │   ├── strands_tools (file/shell/edit)│ │
 │       └────────│   └── Socket.IO server                │ │
 │                └──────────┬───────────────────────────┘ │
 │                           ↓                              │
-│                    MiniMax API (externo)                  │
+│                    MiniMax API (external)                  │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │ React Dev Server (Vite) ← Socket.IO client       │   │
@@ -120,7 +120,7 @@ services:
     depends_on:
       - db
     volumes:
-      - ./workspaces:/app/workspaces  # directorio donde los agentes escriben código
+      - ./workspaces:/app/workspaces  # directory where agents write code
 
   frontend:
     build: ./frontend
@@ -133,32 +133,32 @@ volumes:
   pgdata:
 ```
 
-### Producción
+### Production
 
-El mismo `docker-compose.yml` funciona en producción. El stack es cloud-agnostic — puede desplegarse en cualquier proveedor que soporte Docker:
+The same `docker-compose.yml` works in production. The stack is cloud-agnostic — can be deployed to any provider that supports Docker:
 
-| Opción | Cómo |
+| Option | How |
 |---|---|
-| **VPS / bare metal** | `docker compose up -d` directamente |
+| **VPS / bare metal** | `docker compose up -d` directly |
 | **AWS** | ECS Fargate + RDS PostgreSQL |
 | **GCP** | Cloud Run + Cloud SQL |
 | **Azure** | Container Apps + Azure Database for PostgreSQL |
-| **Railway / Render** | Deploy directo desde Docker Compose |
+| **Railway / Render** | Direct deploy from Docker Compose |
 
-Para producción, agregar:
-- **Reverse proxy** (Nginx/Caddy) con TLS
-- **Secrets management** (env vars inyectadas por el proveedor, no en `.env`)
-- **Persistent volume** para `/app/workspaces`
-- **PostgreSQL managed** (o el mismo container con volume persistente)
+For production, add:
+- **Reverse proxy** (Nginx/Caddy) with TLS
+- **Secrets management** (env vars injected by provider, not in `.env`)
+- **Persistent volume** for `/app/workspaces`
+- **Managed PostgreSQL** (or same container with persistent volume)
 
 ---
 
-## 3. Modelo de Datos (✅ Completado)
+## 3. Data Model (✅ Completed)
 
-PostgreSQL 16 con SQLAlchemy async.
+PostgreSQL 16 with async SQLAlchemy.
 
 ```sql
--- Sesiones de pipeline
+-- Pipeline sessions
 CREATE TABLE agent_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ticket_id VARCHAR(50) NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE agent_sessions (
 
 CREATE INDEX idx_sessions_ticket ON agent_sessions(ticket_id);
 
--- Eventos de agentes (alimentan el dashboard via Socket.IO)
+-- Agent events (feed dashboard via Socket.IO)
 CREATE TABLE agent_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES agent_sessions(id),
@@ -234,9 +234,9 @@ class AgentEvent(Base):
 
 ---
 
-## 4. Integración con Jira via API Polling (✅ Completado)
+## 4. Jira Integration via API Polling (✅ Completed)
 
-El polling de Jira usa **API REST directa** para mayor confiabilidad. MCP (`mcp-atlassian`) **no se usa actualmente** — se considera para futuras integraciones con otras herramientas.
+Jira polling uses **direct REST API** for better reliability. MCP (`mcp-atlassian`) **is not currently used** — considered for future integrations with other tools.
 
 #### JiraStatus Enum
 
@@ -252,7 +252,7 @@ class JiraStatus(StrEnum):
 
 #### Polling: Direct REST API
 
-El polling usa **API REST directa** para mayor confiabilidad:
+Polling uses **direct REST API** for better reliability:
 
 ```python
 # app/mcp/polling.py
@@ -264,27 +264,27 @@ async def search_ready_for_dev_tickets():
     auth = base64.b64encode(f"{email}:{api_token}".encode()).decode()
     jql = urllib.parse.quote(f"status = '{JiraStatus.TO_DO}' ORDER BY created ASC")
     url = f"{JIRA_URL}/rest/api/3/search/jql?jql={jql}&maxResults=10"
-    # Usa urllib.request directo para polling
+    # Uses urllib.request directly for polling
 ```
 
-#### Tools de Jira disponibles para los agentes
+#### Jira Tools Available to Agents
 
-| MCP Tool | Uso en el pipeline |
+| MCP Tool | Use in Pipeline |
 |---|---|
-| `jira_search_issues` | Buscar tickets por JQL |
-| `jira_get_issue` | Leer detalle completo del ticket |
-| `jira_update_issue` | Cambiar estado (In Progress, Done, Blocked) |
-| `jira_add_comment` | Comentar progreso, errores, link al PR |
-| `jira_get_comments` | Leer comentarios/contexto adicional del ticket |
-| `jira_add_issues_to_sprint` | Organización de sprint |
+| `jira_search_issues` | Search tickets by JQL |
+| `jira_get_issue` | Read full ticket details |
+| `jira_update_issue` | Change status (In Progress, Done, Blocked) |
+| `jira_add_comment` | Comment progress, errors, PR link |
+| `jira_get_comments` | Read comments/additional context |
+| `jira_add_issues_to_sprint` | Sprint organization |
 
-**Nota:** Jira tools no están implementados via MCP. Futura integración via webhook de Jira.
+**Note:** Jira tools are not implemented via MCP. Future integration via Jira webhook.
 
-### MCP Servers (Futuro)
+### MCP Servers (Future)
 
 #### GitHub MCP
 
-Para crear branches y PRs, se usará el MCP server oficial de GitHub:
+To create branches and PRs, the official GitHub MCP server will be used:
 
 ```python
 from mcp.client.streamable_http import streamablehttp_client
@@ -299,29 +299,29 @@ github_mcp = MCPClient(
 )
 ```
 
-### Trigger: Polling (MVP) + Webhook (Futuro)
+### Trigger: Polling (MVP) + Webhook (Future)
 
-**MVP (actual):** El polling busca tickets "To Do" cada N minutos usando API REST directa.
+**MVP (current):** Polling searches for "To Do" tickets every N minutes using direct REST API.
 
-**Futuro:** Jira webhook → API Gateway → FastAPI para detección en tiempo real.
+**Future:** Jira webhook → API Gateway → FastAPI for real-time detection.
 
-### Ciclo de vida del ticket
+### Ticket Lifecycle
 
-| Evento | Acción (via MCP tools) |
+| Event | Action (via MCP tools) |
 |---|---|
-| Ticket detectado (polling) | API directa → `launch_agent_pipeline(ticket_id)` |
-| Pipeline iniciado | `jira_update_issue` → "In Progress" + `jira_add_comment` |
-| PR creado | `jira_add_comment` → link al PR |
-| Tests fallaron | `jira_add_comment` + `jira_update_issue` → "Blocked" |
-| Review aprobado | `jira_update_issue` → "Done" |
+| Ticket detected (polling) | Direct API → `launch_agent_pipeline(ticket_id)` |
+| Pipeline started | `jira_update_issue` → "In Progress" + `jira_add_comment` |
+| PR created | `jira_add_comment` → PR link |
+| Tests failed | `jira_add_comment` + `jira_update_issue` → "Blocked" |
+| Review approved | `jira_update_issue` → "Done" |
 
 ---
 
-## 5. Agentes de Desarrollo con Strands SDK
+## 5. Development Agents with Strands SDK (✅ Completed)
 
-### 5.1 Conexión con MiniMax M2.7
+### 5.1 MiniMax M2.7 Connection
 
-MiniMax expone un endpoint OpenAI-compatible. Strands soporta `OpenAIModel` nativamente.
+MiniMax exposes an OpenAI-compatible endpoint. Strands supports `OpenAIModel` natively.
 
 ```python
 from strands.models.openai import OpenAIModel
@@ -329,7 +329,7 @@ from strands.models.openai import OpenAIModel
 minimax = OpenAIModel(
     client_args={
         "api_key": MINIMAX_API_KEY,
-        "base_url": MINIMAX_API_URL,  # configurable: api.minimax.io o openrouter
+        "base_url": MINIMAX_API_URL,  # configurable: api.minimax.io or openrouter
     },
     model_id="MiniMax-M2.7",
 )
@@ -337,7 +337,7 @@ minimax = OpenAIModel(
 
 ### 5.2 Tools: strands_tools + MCP
 
-Los agentes usan una combinación de **strands_tools nativos** (operaciones sobre archivos/código) y **MCP clients** (solo GitHub en el futuro).
+Agents use a combination of **native strands_tools** (file/code operations) and **MCP clients** (only GitHub in the future).
 
 ```python
 from strands import Agent
@@ -345,7 +345,7 @@ from strands.tools.mcp import MCPClient
 from strands_tools import file_read, file_write, editor, shell, python_repl, current_time
 from mcp import stdio_client, StdioServerParameters
 
-# --- MCP Clients (futuro) ---
+# --- MCP Clients (future) ---
 github_mcp = MCPClient(
     lambda: stdio_client(
         StdioServerParameters(
@@ -357,32 +357,32 @@ github_mcp = MCPClient(
     prefix="github",
 )
 
-# --- Tools por tipo de agente ---
-ORCHESTRATOR_TOOLS = [github_mcp]                    # MCP: crea PR (futuro)
-DEV_TOOLS = [file_read, file_write, editor, shell]    # strands_tools: opera sobre código
-QA_TOOLS = [file_read, file_write, shell, python_repl] # strands_tools: escribe y corre tests
+# --- Tools by agent type ---
+ORCHESTRATOR_TOOLS = [github_mcp]                    # MCP: creates PR (future)
+DEV_TOOLS = [file_read, file_write, editor, shell]    # strands_tools: operates on code
+QA_TOOLS = [file_read, file_write, shell, python_repl] # strands_tools: writes and runs tests
 ```
 
-#### Mapa de tools
+#### Tools Map
 
-| Tool | Source | Agentes que lo usan |
+| Tool | Source | Agents Using It |
 |---|---|---|
 | `file_read` | strands_tools | Backend, Frontend, QA |
 | `file_write` | strands_tools | Backend, Frontend, QA |
-| `editor` | strands_tools | Backend, Frontend (editar código existente) |
-| `shell` | strands_tools | QA (correr tests), Backend (migrations) |
-| `python_repl` | strands_tools | QA (ejecutar tests inline) |
-| `current_time` | strands_tools | Orquestador (timestamps en logs) |
-| `github_create_branch` | MCP (github, futuro) | Orquestador |
-| `github_create_pull_request` | MCP (github, futuro) | Orquestador |
+| `editor` | strands_tools | Backend, Frontend (edit existing code) |
+| `shell` | strands_tools | QA (run tests), Backend (migrations) |
+| `python_repl` | strands_tools | QA (execute tests inline) |
+| `current_time` | strands_tools | Orchestrator (timestamps in logs) |
+| `github_create_branch` | MCP (github, future) | Orchestrator |
+| `github_create_pull_request` | MCP (github, future) | Orchestrator |
 
-### 5.3 Definición de Agentes
+### 5.3 Agent Definitions
 
-Cada agente tiene un rol claro, system prompt acotado, y tools específicos. Los MCP clients se pasan directamente — Strands maneja su lifecycle.
+Each agent has a clear role, limited system prompt, and specific tools. MCP clients are passed directly — Strands handles their lifecycle.
 
-#### Agente Arquitecto (Orquestador)
+#### Architect Agent (Orchestrator)
 
-Recibe el ticket Jira (via API directa), analiza requisitos, descompone en subtareas y coordina a los demás agentes (pasados como tools).
+Receives Jira ticket (via direct API), analyzes requirements, decomposes into subtasks, and coordinates other agents (passed as tools).
 
 ```python
 from strands import Agent
@@ -414,9 +414,9 @@ Available agents:
 - qa_agent: Unit tests, integration tests, runs test suites
 """,
     tools=[
-        *ORCHESTRATOR_TOOLS,    # github_mcp (futuro)
+        *ORCHESTRATOR_TOOLS,    # github_mcp (future)
         current_time,
-        shell,                  # para git operations
+        shell,                  # for git operations
         backend_agent,
         frontend_agent,
         qa_agent,
@@ -424,7 +424,7 @@ Available agents:
 )
 ```
 
-#### Agente Backend Developer
+#### Backend Developer Agent
 
 ```python
 def create_backend_agent(model) -> Agent:
@@ -447,7 +447,7 @@ Conventions:
     )
 ```
 
-#### Agente Frontend Developer
+#### Frontend Developer Agent
 
 ```python
 def create_frontend_agent(model) -> Agent:
@@ -469,7 +469,7 @@ Conventions:
     )
 ```
 
-#### Agente QA
+#### QA Agent
 
 ```python
 def create_qa_agent(model) -> Agent:
@@ -492,9 +492,9 @@ You MUST run the tests, not just write them.
     )
 ```
 
-### 5.4 Alternativa: Graph Builder para flujos secuenciales
+### 5.4 Alternative: Graph Builder for Sequential Flows
 
-Para tickets donde el flujo siempre es lineal (Backend → Frontend → QA), puedes usar `GraphBuilder`:
+For tickets where the flow is always linear (Backend → Frontend → QA), you can use `GraphBuilder`:
 
 ```python
 from strands import Agent, GraphBuilder
@@ -511,28 +511,28 @@ pipeline = builder.build()
 result = pipeline(f"Implement Jira ticket: {ticket_context}")
 ```
 
-### 5.5 Pipeline Completo
+### 5.5 Complete Pipeline
 
 ```python
 import uuid
 
 async def launch_agent_pipeline(ticket_id: str) -> str:
-    """Lanza el pipeline de agentes para un ticket Jira."""
+    """Launches the agent pipeline for a Jira ticket."""
     session_id = str(uuid.uuid4())
 
-    # Guardar sesión en DB
+    # Save session to DB
     await save_session(session_id, ticket_id, status="started")
 
-    # Emitir evento al dashboard
+    # Emit event to dashboard
     await emit_event(session_id, "pipeline_started", {"ticket_id": ticket_id})
 
     try:
-        # El orquestador hace TODO via tools (MCP + strands_tools):
-        # - Lee el ticket de Jira (jira_get_issue)
-        # - Lo transiciona a "In Progress" (jira_update_issue)
-        # - Delega a agentes dev (backend_agent, frontend_agent, qa_agent)
-        # - Crea branch y PR (shell + github_create_pull_request)
-        # - Comenta en Jira con el link al PR (jira_add_comment)
+        # The orchestrator does EVERYTHING via tools (MCP + strands_tools):
+        # - Reads ticket from Jira (jira_get_issue)
+        # - Transitions it to "In Progress" (jira_update_issue)
+        # - Delegates to dev agents (backend_agent, frontend_agent, qa_agent)
+        # - Creates branch and PR (shell + github_create_pull_request)
+        # - Comments on Jira with PR link (jira_add_comment)
         result = orchestrator(
             f"Implement Jira ticket {ticket_id}. "
             f"Read the ticket, implement the solution, run tests, "
@@ -551,19 +551,19 @@ async def launch_agent_pipeline(ticket_id: str) -> str:
 
 ---
 
-## 6. Seguridad y Guardrails
+## 6. Security and Guardrails
 
-### Seguridad
-- API keys en `.env` (git-ignored). En producción, inyectar como secrets del proveedor cloud
-- Agentes ejecutan código en **directorios aislados** (`/app/workspaces/<ticket-id>/`)
-- Branch protection rules impiden merge sin review
-- MCP servers corren como subprocesos del backend, no expuestos externamente
+### Security
+- API keys in `.env` (git-ignored). In production, inject as cloud provider secrets
+- Agents execute code in **isolated directories** (`/app/workspaces/<ticket-id>/`)
+- Branch protection rules prevent merge without review
+- MCP servers run as backend subprocesses, not exposed externally
 
-### Guardrails Anti-Loop y Control de Billing
+### Anti-Loop Guardrails and Billing Control
 
-> **CRITICO para PoC y producción.** Los agentes pueden entrar en loops infinitos que consumen tokens sin parar. Estos guardrails son obligatorios.
+> **CRITICAL for PoC and production.** Agents can enter infinite loops that consume tokens non-stop. These guardrails are mandatory.
 
-#### Límites por agente
+#### Per-Agent Limits
 
 ```python
 from strands import Agent
@@ -575,18 +575,18 @@ agent = Agent(
 )
 ```
 
-#### Configuración de límites
+#### Limit Configuration
 
-| Guardrail | Valor Default | Descripción |
+| Guardrail | Default Value | Description |
 |---|---|---|
-| **Timeout por agente** | 5 min | El agente se cancela si excede este tiempo |
-| **Max iteraciones (tool calls)** | 20 | Máximo de tool calls por invocación de agente |
-| **Max iteraciones orquestador** | 50 | El orquestador tiene más margen porque coordina |
-| **Token budget por sesión** | 100k tokens | Se trackea y corta si se excede |
-| **Max archivos por agente** | 15 | Evita que un agente cree archivos infinitamente |
-| **Max tamaño de archivo** | 500 líneas | Si un agente genera más, se corta y reporta error |
+| **Agent timeout** | 5 min | Agent is cancelled if exceeded |
+| **Max iterations (tool calls)** | 20 | Max tool calls per agent invocation |
+| **Max orchestrator iterations** | 50 | Orchestrator has more margin because it coordinates |
+| **Token budget per session** | 100k tokens | Tracked and cut if exceeded |
+| **Max files per agent** | 15 | Prevents an agent from creating infinite files |
+| **Max file size** | 500 lines | If an agent generates more, it's cut and reports error |
 
-#### Implementación del token tracker
+#### Token Tracker Implementation
 
 ```python
 import time
@@ -628,35 +628,35 @@ class BudgetExceededError(Exception):
     pass
 ```
 
-#### Qué pasa cuando se excede un límite
+#### What Happens When a Limit is Exceeded
 
-1. El agente se detiene inmediatamente
-2. Se guarda el estado parcial en la DB
-3. Se emite evento `budget_exceeded` al dashboard
-4. Se comenta en Jira: "Agent pipeline paused — budget exceeded. Manual intervention required."
-5. El ticket se transiciona a "Blocked"
+1. The agent stops immediately
+2. Partial state is saved to DB
+3. `budget_exceeded` event is emitted to dashboard
+4. Comment posted to Jira: "Agent pipeline paused — budget exceeded. Manual intervention required."
+5. Ticket is transitioned to "Blocked"
 
-### Manejo de Errores
-- Retry con backoff exponencial en llamadas a MiniMax API
-- Circuit breaker si MiniMax está caído (notifica y pausa)
-- Timeout por agente (configurable, default 5 min)
-- Si un agente falla 2 veces, el orquestador marca el ticket como "Blocked" en Jira
+### Error Handling
+- Retry with exponential backoff on MiniMax API calls
+- Circuit breaker if MiniMax is down (notifies and pauses)
+- Per-agent timeout (configurable, default 5 min)
+- If an agent fails 2 times, the orchestrator marks the ticket as "Blocked" in Jira
 
-### Costos
-- **MiniMax M2.7**: consultar pricing actual en https://platform.minimax.io/subscribe/token-plan
-- **Infra**: PostgreSQL + Docker containers — costo fijo y predecible
-- **Sin servicios serverless** que escalen inesperadamente
-- Los guardrails de token budget son la principal protección contra billing sorpresa
+### Costs
+- **MiniMax M2.7**: check current pricing at https://platform.minimax.io/subscribe/token-plan
+- **Infra**: PostgreSQL + Docker containers — fixed and predictable cost
+- **No serverless services** that scale unexpectedly
+- Token budget guardrails are the main protection against surprise billing
 
-### Observabilidad
-- Logs en stdout (structured JSON) + PostgreSQL (tabla `agent_events`) + Socket.IO dashboard
-- En producción, agregar collector de logs (Loki, ELK, o el nativo del cloud provider)
+### Observability
+- Logs in stdout (structured JSON) + PostgreSQL (`agent_events` table) + Socket.IO dashboard
+- In production, add log collector (Loki, ELK, or cloud provider's native solution)
 
 ---
 
-## 7. Dashboard de Monitoreo (MVP)
+## 7. Monitoring Dashboard (MVP)
 
-### 7.1 Arquitectura
+### 7.1 Architecture
 
 ```
 PostgreSQL → Socket.IO (FastAPI) → React Dashboard
@@ -667,7 +667,7 @@ PostgreSQL → Socket.IO (FastAPI) → React Dashboard
                                           MetricsPanel
 ```
 
-### 7.2 Comunicación en Tiempo Real (Socket.IO)
+### 7.2 Real-Time Communication (Socket.IO)
 
 ```python
 import socketio
@@ -675,7 +675,7 @@ import socketio
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 
 async def emit_event(session_id: str, event_type: str, payload: dict):
-    """Emite evento a todos los clientes conectados al room de la sesión."""
+    """Emits event to all clients connected to the session room."""
     await sio.emit("agent_event", {
         "type": event_type,
         "session_id": session_id,
@@ -685,13 +685,13 @@ async def emit_event(session_id: str, event_type: str, payload: dict):
 
 @sio.event
 async def join_session(sid, data):
-    """Cliente se une al room de una sesión para recibir eventos."""
+    """Client joins a session room to receive events."""
     sio.enter_room(sid, data["session_id"])
     state = await get_session_state(data["session_id"])
     await sio.emit("state_sync", state, to=sid)
 ```
 
-#### Formato de Mensajes
+#### Message Format
 
 ```json
 {
@@ -708,33 +708,33 @@ async def join_session(sid, data):
 }
 ```
 
-Tipos de eventos: `agent_state_change`, `agent_log`, `task_assigned`, `task_completed`, `error`, `pipeline_started`, `pipeline_completed`, `pr_created`.
+Event types: `agent_state_change`, `agent_log`, `task_assigned`, `task_completed`, `error`, `pipeline_started`, `pipeline_completed`, `pr_created`.
 
-### 7.3 Sistema de Figuras 2D (Sprites SVG)
+### 7.3 2D Figure System (SVG Sprites)
 
-Cada agente se representa como un personaje SVG simple con animaciones CSS por estado.
+Each agent is represented as a simple SVG character with CSS animations per state.
 
-#### Estados Visuales
+#### Visual States
 
-| Estado | Visual | Animación CSS |
+| State | Visual | CSS Animation |
 |---|---|---|
-| `idle` | Personaje neutral, color base | `animate-bob` (float suave vertical 2px, 2s) |
-| `thinking` | Burbuja de pensamiento con "..." | `animate-pulse` (opacidad pulsante, 1s) |
-| `working` | Partículas de actividad, herramienta activa | `animate-work` (movimiento de manos, 0.5s) |
-| `waiting` | Reloj de arena o "?" sobre la cabeza | `animate-wait` (opacidad lenta, 3s) |
-| `success` | Check verde, expresión feliz | `animate-bounce` (rebote, 0.5s) |
-| `error` | "!" rojo, expresión preocupada | `animate-shake` (vibración horizontal, 0.3s) |
+| `idle` | Neutral character, base color | `animate-bob` (soft vertical float 2px, 2s) |
+| `thinking` | Thought bubble with "..." | `animate-pulse` (pulsing opacity, 1s) |
+| `working` | Activity particles, active tool | `animate-work` (hand movement, 0.5s) |
+| `waiting` | Hourglass or "?" above head | `animate-wait` (slow opacity, 3s) |
+| `success` | Green check, happy expression | `animate-bounce` (bounce, 0.5s) |
+| `error` | Red "!", worried expression | `animate-shake` (horizontal vibration, 0.3s) |
 
-#### Diseño por Rol
+#### Design by Role
 
-| Agente | Color Primario | Elemento Distintivo |
+| Agent | Primary Color | Distinctive Element |
 |---|---|---|
-| **Arquitecto** | Azul navy `#1E3A5F` | Sombrero/casco + blueprint |
-| **Backend** | Verde esmeralda `#0D7377` | Terminal/prompt + auriculares |
-| **Frontend** | Coral `#FF6B6B` | Paleta de colores + gafas redondas |
-| **QA** | Naranja `#F0932B` | Lupa gigante + bata de lab |
+| **Architect** | Navy blue `#1E3A5F` | Hat/helmet + blueprint |
+| **Backend** | Emerald green `#0D7377` | Terminal/prompt + headphones |
+| **Frontend** | Coral `#FF6B6B` | Color palette + round glasses |
+| **QA** | Orange `#F0932B` | Giant magnifying glass + lab coat |
 
-#### Componente React
+#### React Component
 
 ```tsx
 interface AgentFigureProps {
@@ -779,7 +779,7 @@ const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => (
 );
 ```
 
-#### Conexiones entre Agentes
+#### Connections Between Agents
 
 ```tsx
 const AgentConnection: React.FC<{ from: Point; to: Point; active: boolean }> = ({
@@ -796,12 +796,12 @@ const AgentConnection: React.FC<{ from: Point; to: Point; active: boolean }> = (
 );
 ```
 
-### 7.4 Layout del Dashboard
+### 7.4 Dashboard Layout
 
 ```
 ┌──────────────┬──────────────────────────────┬──────────────┐
 │              │                              │              │
-│  Task List   │     Canvas Central (60%)     │   Log Panel  │
+│  Task List   │     Central Canvas (60%)     │   Log Panel  │
 │   (20%)      │                              │    (20%)     │
 │              │   ┌─────┐     ┌─────┐       │              │
 │  PROJ-123    │   │Arch │────→│Back │       │  [backend]   │
@@ -821,52 +821,52 @@ const AgentConnection: React.FC<{ from: Point; to: Point; active: boolean }> = (
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 7.5 Componentes del Dashboard
+### 7.5 Dashboard Components
 
-| Componente | Responsabilidad |
+| Component | Responsibility |
 |---|---|
-| `AgentCanvas` | SVG canvas central, renderiza figuras y conexiones |
-| `AgentFigure` | Sprite individual con estado y animación |
-| `TaskPanel` | Lista de tareas del ticket, estado de cada una |
-| `LogPanel` | Logs en tiempo real, filtrable por agente |
-| `MetricsBar` | Tokens usados, tiempo, archivos generados, estado de tests |
-| `ConnectionStatus` | Estado de conexión Socket.IO con auto-reconnect |
+| `AgentCanvas` | Central SVG canvas, renders figures and connections |
+| `AgentFigure` | Individual sprite with state and animation |
+| `TaskPanel` | Ticket task list, state of each |
+| `LogPanel` | Real-time logs, filterable by agent |
+| `MetricsBar` | Tokens used, time, files generated, test status |
+| `ConnectionStatus` | Socket.IO connection status with auto-reconnect |
 
 ---
 
-## 8. Human-in-the-Loop: Review y CI/CD
+## 8. Human-in-the-Loop: Review and CI/CD
 
-El código generado por agentes **nunca va directo a producción**. El flujo de aprobación:
+Generated code by agents **never goes directly to production**. The approval flow:
 
 ```
-Agentes generan código
+Agents generate code
        ↓
 Git branch: agent/proj-123
        ↓
-Pull Request automático (GitHub/CodeCommit)
+Automatic Pull Request (GitHub/CodeCommit)
        ↓
-CI/CD Pipeline se activa:
+CI/CD Pipeline activates:
   ├── Linting (ruff, eslint)
-  ├── Tests unitarios (pytest, vitest)
-  ├── Tests integración
+  ├── Unit tests (pytest, vitest)
+  ├── Integration tests
   ├── Security scan (bandit, npm audit)
   └── Build check
        ↓
   ┌─────────────────────────┐
   │  HUMAN REVIEW REQUIRED  │
   │                         │
-  │  - Code review del PR   │
-  │  - Verificar calidad    │
-  │  - Aprobar o rechazar   │
+  │  - PR code review       │
+  │  - Verify quality       │
+  │  - Approve or reject    │
   └─────────────────────────┘
-       ↓ (si aprobado)
-  Merge → Deploy a staging → Deploy a prod
+       ↓ (if approved)
+  Merge → Deploy to staging → Deploy to prod
 ```
 
-### Configuración de branch protection
+### Branch Protection Configuration
 
 ```yaml
-# GitHub branch protection (configurar via UI o API)
+# GitHub branch protection (configure via UI or API)
 branch_protection:
   required_reviews: 1
   dismiss_stale_reviews: true
@@ -878,10 +878,10 @@ branch_protection:
     - security-scan
 ```
 
-### CI/CD Genérico (CodeBuild/GitHub Actions)
+### Generic CI/CD (CodeBuild/GitHub Actions)
 
 ```yaml
-# buildspec.yml para CodeBuild / .github/workflows/ci.yml
+# buildspec.yml for CodeBuild / .github/workflows/ci.yml
 version: 0.2
 phases:
   install:
@@ -900,42 +900,42 @@ phases:
 
 ---
 
-## 9. Runbook Operacional
+## 9. Operational Runbook
 
-### 9.1 Operaciones Comunes
+### 9.1 Common Operations
 
-#### Iniciar el sistema (local)
+#### Start the system (local)
 
 ```bash
-# 1. Verificar que Docker esté corriendo
+# 1. Verify Docker is running
 docker --version
 
-# 2. Iniciar todos los servicios
+# 2. Start all services
 docker compose up -d
 
-# 3. Verificar estado de los servicios
+# 3. Check service status
 docker compose ps
 
-# 4. Ver logs en tiempo real
+# 4. View real-time logs
 docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs -f db
 
-# 5. Verificar conexión a Jira API
+# 5. Verify Jira API connection
 docker compose exec backend curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" "$JIRA_URL/rest/api/3/myself" | head -c 200
 ```
 
-#### Detener el sistema
+#### Stop the system
 
 ```bash
-# Detener todos los servicios (preserva datos)
+# Stop all services (preserves data)
 docker compose stop
 
-# Detener y eliminar volúmenes (BORRA DATOS)
+# Stop and remove volumes (DELETES DATA)
 docker compose down -v
 ```
 
-#### Reiniciar un servicio específico
+#### Restart a specific service
 
 ```bash
 docker compose restart backend
@@ -945,7 +945,7 @@ docker compose restart db
 
 ---
 
-### 9.2 Verificación de Salud
+### 9.2 Health Verification
 
 #### Healthchecks
 
@@ -963,127 +963,127 @@ docker compose exec db pg_isready -U agent -d multi_agent
 curl -f http://localhost:8000/socket.io/?EIO=4&transport=polling
 ```
 
-#### Checklist de salud del pipeline
+#### Pipeline Health Checklist
 
-| Componente | Verificación | Comando |
+| Component | Verification | Command |
 |---|---|---|
-| **PostgreSQL** | Conexión activa | `docker compose exec db psql -U agent -d multi_agent -c "SELECT 1"` |
-| **MiniMax API** | API responde | `curl -s -o /dev/null -w "%{http_code}" https://api.minimax.io/v1/models` |
-| **Jira API** | API responde | `curl -s -o /dev/null -w "%{http_code}" https://tu-domain.atlassian.net/rest/api/3/myself` |
-| **GitHub MCP** | Token válido | `gh auth status` |
-| **strands_tools** | Herramientas cargan | `python -c "from strands_tools import file_read, file_write; print('OK')"` |
+| **PostgreSQL** | Active connection | `docker compose exec db psql -U agent -d multi_agent -c "SELECT 1"` |
+| **MiniMax API** | API responds | `curl -s -o /dev/null -w "%{http_code}" https://api.minimax.io/v1/models` |
+| **Jira API** | API responds | `curl -s -o /dev/null -w "%{http_code}" https://your-domain.atlassian.net/rest/api/3/myself` |
+| **GitHub MCP** | Valid token | `gh auth status` |
+| **strands_tools** | Tools load | `python -c "from strands_tools import file_read, file_write; print('OK')"` |
 
 ---
 
-### 9.3 Manejo de Incidentes
+### 9.3 Incident Handling
 
-#### Pipeline fallido — Ticket bloqueado
+#### Failed Pipeline — Blocked Ticket
 
-**Síntoma**: El ticket en Jira está en estado "Blocked" o el PR no se creó.
+**Symptom**: Jira ticket is in "Blocked" status or PR was not created.
 
-**Diagnóstico**:
+**Diagnosis**:
 ```bash
-# 1. Ver logs del backend
+# 1. Check backend logs
 docker compose logs backend --tail=100 | grep -i error
 
-# 2. Verificar si el workspace existe
+# 2. Verify workspace exists
 ls -la workspaces/
 
-# 3. Ver estado de la sesión en DB
+# 3. Check session state in DB
 docker compose exec db psql -U agent -d multi_agent -c \
   "SELECT id, ticket_id, status, error FROM agent_sessions ORDER BY created_at DESC LIMIT 5;"
 ```
 
-**Resolución**:
+**Resolution**:
 ```bash
-# 1. Limpiar workspace del ticket
+# 1. Clean ticket workspace
 rm -rf workspaces/<ticket-id>/
 
-# 2. Resetear estado en Jira (manual o via UI)
+# 2. Reset state in Jira (manual or via UI)
 
-# 3. Re-lanzar pipeline manualmente
+# 3. Re-launch pipeline manually
 curl -X POST http://localhost:8000/trigger/<ticket-id>
 ```
 
-#### Error de autenticación Jira/GitHub
+#### Jira/GitHub Authentication Error
 
-**Síntoma**: `AuthenticationError` en logs.
+**Symptom**: `AuthenticationError` in logs.
 
-**Diagnóstico**:
+**Diagnosis**:
 ```bash
-# Verificar variables de entorno
+# Verify environment variables
 docker compose exec backend env | grep -E "(JIRA|GITHUB)"
 
-# Testear token de Jira
+# Test Jira token
 docker compose exec backend curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
   "$JIRA_URL/rest/api/2/myself" | head -c 200
 
-# Testear token de GitHub
+# Test GitHub token
 gh auth status
 ```
 
-**Resolución**:
+**Resolution**:
 ```bash
-# Actualizar secrets en .env
-# Reiniciar backend
+# Update secrets in .env
+# Restart backend
 docker compose restart backend
 ```
 
-#### Budget exceeded (tokens/iteraciones)
+#### Budget exceeded (tokens/iterations)
 
-**Síntoma**: `BudgetExceededError` en logs, ticket en "Blocked".
+**Symptom**: `BudgetExceededError` in logs, ticket in "Blocked".
 
-**Diagnóstico**:
+**Diagnosis**:
 ```bash
-# Ver consumo de tokens
+# Check token consumption
 docker compose logs backend | grep -i "budget\|tokens"
 
-# Ver último evento de budget
+# Check last budget event
 docker compose exec db psql -U agent -d multi_agent -c \
   "SELECT * FROM agent_events WHERE event_type = 'budget_exceeded' ORDER BY created_at DESC LIMIT 3;"
 ```
 
-**Resolución**:
+**Resolution**:
 ```bash
-# Aumentar límites en config (temporalmente)
-# O limpiar sesión y reintentar
+# Increase limits in config (temporarily)
+# Or clear session and retry
 docker compose exec db psql -U agent -d multi_agent -c \
   "DELETE FROM agent_events WHERE session_id = '<session-id>';"
 ```
 
-#### MiniMax API no responde
+#### MiniMax API Not Responding
 
-**Síntoma**: `ConnectionError` o timeout en llamadas al LLM.
+**Symptom**: `ConnectionError` or timeout on LLM calls.
 
-**Diagnóstico**:
+**Diagnosis**:
 ```bash
-# Testear conectividad
+# Test connectivity
 curl -v https://api.minimax.io/v1/models \
   -H "Authorization: Bearer $MINIMAX_API_KEY" 2>&1 | head -20
 
-# Verificar rate limits
+# Check rate limits
 curl -s https://api.minimax.io/v1/usage \
   -H "Authorization: Bearer $MINIMAX_API_KEY"
 ```
 
-**Resolución**:
+**Resolution**:
 ```bash
-# Esperar y reintentar (backoff automático si está implementado)
-# Si el problema persiste, verificar status de MiniMax
-# Alternativa: usar OpenRouter como fallback
+# Wait and retry (automatic backoff if implemented)
+# If problem persists, check MiniMax status
+# Alternative: use OpenRouter as fallback
 ```
 
-#### Modelo alcanza 70% de usage (switch dinámico)
+#### Model reaches 70% usage (dynamic switch)
 
-**Síntoma**: Se alcanzó ~70% del quota de tokens del modelo actual.
+**Symptom**: ~70% of current model's token quota reached.
 
-**Modelos configurados**:
+**Configured models**:
 - **Primary**: `MiniMax-M2.7` via api.minimax.io
 - **Fallback**: `MiniMax-M2.7` via OpenRouter
 
-**Resolución (switch manual a fallback)**:
+**Resolution (manual switch to fallback)**:
 ```bash
-# Cambiar MINIMAX_API_URL en .env a OpenRouter
+# Change MINIMAX_API_URL in .env to OpenRouter
 sed -i 's|MINIMAX_API_URL=.*|MINIMAX_API_URL=https://openrouter.ai/api/v1|' .env
 docker compose restart backend
 ```
@@ -1092,152 +1092,153 @@ docker compose restart backend
 
 ### 9.4 Recovery Procedures
 
-#### Disaster Recovery — Pérdida de PostgreSQL
+#### Disaster Recovery — PostgreSQL Loss
 
 ```bash
-# 1. Verificar que el volumen persiste
+# 1. Verify volume persists
 docker compose inspect db | grep -A5 "Mounts"
 
-# 2. Si hay backup, restaurar
+# 2. If there is a backup, restore
 docker compose exec db psql -U agent -d multi_agent < backup.sql
 
-# 3. Si no hay backup y hay workspaces:
-#    Los agentes pueden regenerar el código desde el PR
-#    Solo se pierden eventos/histórico
+# 3. If no backup and there are workspaces:
+#    Agents can regenerate code from the PR
+#    Only events/historic are lost
 ```
 
-#### Recovery de Workspace corrupto
+#### Corrupt Workspace Recovery
 
 ```bash
-# 1. Identificar workspace problemáticos
+# 1. Identify problematic workspaces
 ls -la workspaces/
 
-# 2. Regenerar desde PR
-#    - El PR contiene todo el código generado
+# 2. Regenerate from PR
+#    - The PR contains all generated code
 
-# 3. Limpiar workspace
+# 3. Clean workspace
 rm -rf workspaces/<ticket-id>/
 ```
 
 ---
 
-### 9.5 Comandos de Debugging
+### 9.5 Debugging Commands
 
 ```bash
-# Ver todos los eventos de una sesión
+# View all events from a session
 docker compose exec db psql -U agent -d multi_agent -c \
   "SELECT agent_id, event_type, created_at FROM agent_events \
    WHERE session_id = '<session-id>' ORDER BY created_at;"
 
-# Ver logs de un agente específico
+# View logs from a specific agent
 docker compose logs -f backend 2>&1 | grep "backend_agent"
 
-# Ver consumo de recursos
+# View resource consumption
 docker stats
 
-# Ver variables de entorno cargadas en backend
+# View environment variables loaded in backend
 docker compose exec backend env | sort
 
-# Acceder a shell en el container
+# Access shell in container
 docker compose exec backend /bin/bash
 
-# Verificar versión de dependencias
+# Verify dependency versions
 docker compose exec backend pip list | grep -E "(strands|fastapi|socketio)"
 
-# Testar MCP manualmente
+# Test MCP manually
 docker compose exec backend python -c "
 from mcp import stdio_client, StdioServerParameters
-print('MCP client importado OK')
+print('MCP client imported OK')
 "
 ```
 
 ---
 
-### 9.6 Contactos y Escalación
+### 9.6 Contacts and Escalation
 
-| Nivel | Responsable | Cuando escalar |
+| Level | Responsible | When to Escalate |
 |---|---|---|
-| **L1** | DevOps on-call | Pipeline fallido, errores de conexión |
-| **L2** | Backend Lead | Bugs en agentes, memory leaks, performance |
-| **L3** | Architect | Diseño de agentes, cambios en flow, incidents mayores |
+| **L1** | DevOps on-call | Failed pipeline, connection errors |
+| **L2** | Backend Lead | Agent bugs, memory leaks, performance |
+| **L3** | Architect | Agent design, flow changes, major incidents |
 
 ---
 
-## 10. Futuros / Deseables
+## 10. Future / Desired
 
-> Las siguientes funcionalidades **no son parte del MVP** pero están contempladas para iteraciones futuras.
+> The following functionalities **are not part of the MVP** but are planned for future iterations.
 
 ### 10.1 Jira Webhook Integration
 
-Reemplazar polling por **Jira webhooks** para detección en tiempo real de tickets:
+Replace polling with **Jira webhooks** for real-time ticket detection:
 
 - Jira webhook → API Gateway (Cloudflare/Railway) → FastAPI endpoint
-- Elimina delay del polling interval
-- Más eficiente en llamadas API
-- Requiere: endpoint expuesto públicamente o tunnel (ngrok/cloudflared)
+- Eliminates polling interval delay
+- More efficient in API calls
+- Requires: publicly exposed endpoint or tunnel (ngrok/cloudflared)
 
-### 10.2 Agentes de Remediación de Producción
+### 10.2 Production Remediation Agents
 
-Usar agentes para **diagnosticar y resolver automáticamente errores de producción**:
+Use agents to **diagnose and automatically resolve production errors**:
 
 - CloudWatch Alarm → EventBridge → Lambda → Strands Orchestrator
-- Agente de Diagnóstico: analiza logs, métricas, traces del error
-- Agente de Remediación: ejecuta acciones correctivas (escalar instancia, rollback, restart servicio)
-- Agente de Validación: verifica que el fix funcionó
-- Requiere: IAM roles con permisos de ejecución, guardrails estrictos, runbooks predefinidos
+- Diagnostic Agent: analyzes logs, metrics, error traces
+- Remediation Agent: executes corrective actions (scale instance, rollback, restart service)
+- Validation Agent: verifies fix worked
+- Requires: IAM roles with execution permissions, strict guardrails, predefined runbooks
 
-### 10.2 Agente de DevOps
+### 10.2 DevOps Agent
 
-Agente que genera y mantiene IaC (CDK/CloudFormation), Dockerfiles, y pipelines CI/CD.
+Agent that generates and maintains IaC (CDK/CloudFormation), Dockerfiles, and CI/CD pipelines.
 
-### 10.3 Agente de Documentación
+### 10.3 Documentation Agent
 
-Genera y mantiene README, API docs, y guías de contribución a partir del código generado.
+Generates and maintains README, API docs, and contribution guides from generated code.
 
-### 10.4 Aprendizaje de Reviews
+### 10.4 Review Learning
 
-Almacenar feedback de code reviews humanos para que los agentes mejoren con el tiempo (fine-tuning o RAG sobre comentarios de PR).
+Store human code review feedback so agents improve over time (fine-tuning or RAG over PR comments).
 
-### 10.5 Dashboard Avanzado
+### 10.5 Advanced Dashboard
 
-- Sprite sheets con pixel art y animaciones avanzadas (referencia: [NightCityVerse](https://github.com/eruizpy/nightcityverse))
-- Temas claro/oscuro
-- Skins configurables por agente
-- Métricas históricas y analytics
+- Sprite sheets with pixel art and advanced animations
+- Light/dark themes
+- Configurable agent skins
+- Historical metrics and analytics
+- **Reference for pixel art agent visualization**: [Pixel Agents](https://github.com/pablodelucca/pixel-agents) — VS Code extension with pixel art office, Canvas 2D game loop, BFS pathfinding, character state machine, and modular asset system (sprites, furniture, floors). 5.7k stars. Agent-agnostic and platform-agnostic architecture designed to extend beyond Claude Code.
 
-### 10.6 AgentCore con Full AWS (Alternative Architecture)
+### 10.6 AgentCore with Full AWS (Alternative Architecture)
 
-**Alternativa futura para equipos ya invertidos en AWS.**
+**Future alternative for teams already invested in AWS.**
 
-| Criterio | Strands SDK (MVP) | Bedrock AgentCore (Futuro) |
+| Criteria | Strands SDK (MVP) | Bedrock AgentCore (Future) |
 |---|---|---|
-| LLM externo (MiniMax) | **Si** — `OpenAIModel` provider | No — solo modelos Bedrock |
-| Control del flujo | Total, es tu código Python | Managed, menos flexibilidad |
-| Costo de infra | Solo ECS + LLM API | AgentCore Runtime + LLM |
-| Multi-agent patterns | Agents-as-tools, GraphBuilder, Swarm | Limitado a Bedrock agents |
-| Curva de aprendizaje | Moderada, buen docs | Baja pero menos flexible |
-| Demo-friendliness | **Alto** — puedes mostrar el código | Más "caja negra" |
-| Vendor lock-in | **Bajo** — cloud-agnostic | Alto — solo AWS |
+| External LLM (MiniMax) | **Yes** — `OpenAIModel` provider | No — Bedrock models only |
+| Flow control | Total, it's your Python code | Managed, less flexibility |
+| Infra cost | Only ECS + LLM API | AgentCore Runtime + LLM |
+| Multi-agent patterns | Agents-as-tools, GraphBuilder, Swarm | Limited to Bedrock agents |
+| Learning curve | Moderate, good docs | Low but less flexible |
+| Demo-friendliness | **High** — you can show the code | More "black box" |
+| Vendor lock-in | **Low** — cloud-agnostic | High — AWS only |
 
-**Cuándo considerar migrar a AgentCore:**
-- Equipo ya tiene experiencia profunda con AWS
-- Se necesita integración nativa con Bedrock (Claude, etc.)
-- Se prioriza simplicidad de gestión sobre control
-- El costo de AgentCore Runtime es aceptable
+**When to consider migrating to AgentCore:**
+- Team already has deep AWS experience
+- Native Bedrock integration needed (Claude, etc.)
+- Management simplicity prioritized over control
+- AgentCore Runtime cost is acceptable
 
-**Nota:** La arquitectura actual (Strands + Docker + PostgreSQL) está diseñada para ser cloud-agnostic. Si en el futuro se migra a Bedrock, Strands soporta ambos sin cambio de arquitectura significativa.
+**Note:** The current architecture (Strands + Docker + PostgreSQL) is designed to be cloud-agnostic. If migrating to Bedrock in the future, Strands supports both without significant architectural changes.
 
-#### DynamoDB como alternativa a PostgreSQL (AWS)
+#### DynamoDB as PostgreSQL Alternative (AWS)
 
-Para deploy en AWS, PostgreSQL puede substituirse por DynamoDB:
+For AWS deployment, PostgreSQL can be replaced with DynamoDB:
 
-| Tabla | PK | SK | Uso |
+| Table | PK | SK | Use |
 |---|---|---|---|
-| `AgentSessions` | `session_id` | `#metadata` | Estado del pipeline |
-| `AgentEvents` | `session_id` | `timestamp#event_id` | Eventos para dashboard |
-| GSI: `TicketIndex` | `ticket_id` | `created_at` | Buscar por ticket |
+| `AgentSessions` | `session_id` | `#metadata` | Pipeline state |
+| `AgentEvents` | `session_id` | `timestamp#event_id` | Dashboard events |
+| GSI: `TicketIndex` | `ticket_id` | `created_at` | Search by ticket |
 
-La capa de acceso a datos se abstrae con un **repository pattern** para que el switch PostgreSQL → DynamoDB sea transparente.
+The data access layer is abstracted with a **repository pattern** so the PostgreSQL → DynamoDB switch is transparent.
 
 ```
 DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
@@ -1245,7 +1246,7 @@ DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
 
 ---
 
-## 11. Recursos de Referencia
+## 11. Reference Resources
 
 ### Strands SDK
 - [Strands Agents SDK — Docs](https://strandsagents.com)
@@ -1255,7 +1256,7 @@ DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
 - [Strands Tools (file_read, file_write, editor, shell, etc.)](https://github.com/strands-agents/tools)
 - [Strands — Custom Model Providers](https://github.com/strands-agents/docs/blob/main/src/content/docs/user-guide/concepts/model-providers/custom_model_provider.mdx)
 
-### MCP Servers (Futuro)
+### MCP Servers (Future)
 - [GitHub MCP Server (@modelcontextprotocol/server-github)](https://github.com/modelcontextprotocol/servers/tree/main/src/github)
 
 ### LLM
@@ -1263,6 +1264,6 @@ DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
 - [MiniMax Token Plans](https://platform.minimax.io/subscribe/token-plan)
 - [OpenRouter — MiniMax M2.7](https://openrouter.ai/minimax/minimax-m2.7)
 
-### Referencia de Arquitectura
+### Architecture Reference
 - [Anthropic: How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
-- [NightCityVerse — Visual runtime para agentes AI](https://github.com/eruizpy/nightcityverse)
+- [Pixel Agents — Visual runtime for AI agents with pixel art](https://github.com/pablodelucca/pixel-agents)
