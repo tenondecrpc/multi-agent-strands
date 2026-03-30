@@ -11,7 +11,7 @@ const LOG_COLORS: Record<string, string> = {
   error: '#dc3545',
 };
 
-export const LogPanel: React.FC<LogPanelProps> = ({ logs }) => {
+export const LogPanel: React.FC<LogPanelProps> = ({ logs = [] }) => {
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

@@ -70,7 +70,7 @@ export const Dashboard = ({ sessions: propSessions }: DashboardProps) => {
                 key={session.session_id}
                 ticketId={session.ticket_id}
                 title={`Session ${session.session_id.slice(0, 8)}...`}
-                status={session.status as SessionState["status"]}
+                status={session.status.toLowerCase() as SessionState["status"]}
                 agentName={session.agents[0]?.name}
                 onClick={() => navigate(`/session/${session.session_id}`)}
               />

@@ -5,7 +5,7 @@ interface MetricsBarProps {
   isConnected: boolean;
 }
 
-export const MetricsBar: React.FC<MetricsBarProps> = ({ metrics, isConnected }) => {
+export const MetricsBar: React.FC<MetricsBarProps> = ({ metrics = { tokens_used: 0, duration_seconds: 0, files_created: 0, tests_passed: null }, isConnected }) => {
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;

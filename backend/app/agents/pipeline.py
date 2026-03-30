@@ -5,7 +5,7 @@ import logging
 import os
 import time
 from typing import Any
-from uuid import UUID
+import uuid
 
 import app.config  # noqa: F401 - ensures .env is loaded
 
@@ -16,7 +16,7 @@ from app.events import (
     emit_pipeline_error,
     emit_pipeline_started,
 )
-from app.models.agent_session import AgentSession, SessionStatus
+from app.models.agent_session_model import AgentSession, AgentSessionStatus, AgentType
 from app.models.agent_event import AgentEvent, EventType
 
 logger = logging.getLogger(__name__)
@@ -83,14 +83,19 @@ class PipelineGuardrails:
 
 async def create_session(ticket_id: str) -> AgentSession:
     async with async_session_maker() as session:
-        agent_session = AgentSession(ticket_id=ticket_id, status=SessionStatus.RUNNING)
+        agent_session = AgentSession(
+            session_id=str(uuid.uuid4()),
+            ticket_id=ticket_id,
+            agent_type=AgentType.ORCHESTRATOR,
+            status=AgentSessionStatus.RUNNING,
+        )
         session.add(agent_session)
         await session.commit()
         await session.refresh(agent_session)
         return agent_session
 
 
-async def update_session_status(session_id: UUID, status: SessionStatus) -> None:
+async def update_session_status(session_id: UUID, status: AgentSessionStatus) -> None:
     async with async_session_maker() as session:
         from sqlalchemy import select
 
@@ -147,7 +152,7 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
             timeout=guardrails.timeout_seconds,
         )
 
-        await update_session_status(session.id, SessionStatus.COMPLETED)
+        await update_session_status(session.id, AgentSessionStatus.COMPLETED)
         await create_event(
             session.id,
             "orchestrator",
@@ -170,7 +175,7 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
     except asyncio.TimeoutError:
         error_msg = f"Pipeline timed out after {guardrails.timeout_seconds} seconds"
         logger.error(error_msg)
-        await update_session_status(session.id, SessionStatus.FAILED)
+        await update_session_status(session.id, AgentSessionStatus.FAILED)
         await create_event(
             session.id, "orchestrator", EventType.AGENT_FAILED, {"error": error_msg}
         )
@@ -187,7 +192,7 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
     except RuntimeError as e:
         error_msg = str(e)
         logger.error(f"Pipeline guardrail triggered: {error_msg}")
-        await update_session_status(session.id, SessionStatus.FAILED)
+        await update_session_status(session.id, AgentSessionStatus.FAILED)
         await create_event(
             session.id, "orchestrator", EventType.AGENT_FAILED, {"error": error_msg}
         )
@@ -204,7 +209,7 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
     except Exception as e:
         error_msg = f"Pipeline error: {str(e)}"
         logger.error(error_msg)
-        await update_session_status(session.id, SessionStatus.FAILED)
+        await update_session_status(session.id, AgentSessionStatus.FAILED)
         await create_event(
             session.id, "orchestrator", EventType.AGENT_FAILED, {"error": error_msg}
         )

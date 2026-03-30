@@ -16,7 +16,7 @@ const LOG_COLORS: Record<string, string> = {
   error: "#dc3545",
 };
 
-export const LogPanel = ({ logs, className }: LogPanelProps) => {
+export const LogPanel = ({ logs = [], className }: LogPanelProps) => {
   const logsEndRef = useScrollToBottom<HTMLDivElement>([logs]);
 
   return (

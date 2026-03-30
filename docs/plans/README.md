@@ -14,8 +14,8 @@ This document indexes all plan sections for the Multi-Agent System for Software 
 | 06 | [Security and Guardrails](./plans/06-security-guardrails.md) | — |
 | 07 | [Monitoring Dashboard (MVP)](./plans/07-monitoring-dashboard.md) | ✅ Completed |
 | 08 | [UX/UI Improvements and Frontend Refactoring](./plans/08-frontend-refactoring.md) | 🔄 Next Objective |
-| 09 | [Canvas 2D Assets Improvement](./plans/09-canvas-assets.md) | 🔄 Next Objective |
-| 10 | [Real Backend Processes](./plans/10-backend-real-processes.md) | — |
+| 09 | [Real Backend Processes](./plans/09-backend-real-processes.md) | 🔄 Next Objective |
+| 10 | [Canvas 2D Assets Improvement](./plans/10-canvas-assets.md) | — |
 | 11 | [Human-in-the-Loop: Review and CI/CD](./plans/11-human-in-the-loop.md) | — |
 | 12 | [Operational Runbook](./plans/12-operational-runbook.md) | — |
 | 13 | [Future / Desired](./plans/13-future-desired.md) | — |
@@ -31,8 +31,8 @@ This document indexes all plan sections for the Multi-Agent System for Software 
 - **[Security](./plans/06-security-guardrails.md)** — Guardrails, billing control, error handling
 - **[Dashboard](./plans/07-monitoring-dashboard.md)** — Socket.IO, SVG sprites, dashboard layout
 - **[Frontend Refactoring](./plans/08-frontend-refactoring.md)** — Atomic design, Tailwind, shadcn/ui, React Query, Zustand, Zod, Axios
-- **[Canvas 2D Assets](./plans/09-canvas-assets.md)** — Enhanced agent sprites, animations, particle effects
-- **[Real Backend Processes](./plans/10-backend-real-processes.md)** — Task queue, agent orchestration, event bus, state persistence
+- **[Real Backend Processes](./plans/09-backend-real-processes.md)** — Task queue, agent orchestration, event bus, state persistence
+- **[Canvas 2D Assets](./plans/10-canvas-assets.md)** — Enhanced agent sprites, animations, particle effects
 - **[Human-in-the-Loop](./plans/11-human-in-the-loop.md)** — PR flow, CI/CD, branch protection
 - **[Runbook](./plans/12-operational-runbook.md)** — Operations, health checks, incident handling
 - **[Future](./plans/13-future-desired.md)** — Webhooks, remediation agents, advanced dashboard

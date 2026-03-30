@@ -8,7 +8,7 @@ from app.agents.pipeline import (
     PipelineGuardrails,
     launch_agent_pipeline,
 )
-from app.models.agent_session import SessionStatus
+from app.models.agent_session_model import AgentSessionStatus
 
 
 class TestTokenTracker:
@@ -87,7 +87,7 @@ class TestLaunchAgentPipeline:
     async def test_launch_agent_pipeline_creates_session(self):
         mock_session = MagicMock()
         mock_session.id = uuid4()
-        mock_session.status = SessionStatus.RUNNING
+        mock_session.status = AgentSessionStatus.RUNNING
 
         with (
             patch(
@@ -121,7 +121,7 @@ class TestLaunchAgentPipeline:
 
         mock_session = MagicMock()
         mock_session.id = uuid4()
-        mock_session.status = SessionStatus.RUNNING
+        mock_session.status = AgentSessionStatus.RUNNING
 
         with (
             patch(

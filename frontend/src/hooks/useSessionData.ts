@@ -3,12 +3,12 @@ import { useConnectionStore } from "@/lib/stores/connectionStore";
 
 export function useSessionData(sessionId: string) {
   const { data: session, isLoading } = useSession(sessionId);
-  const { data: logs } = useSessionLogs(sessionId);
+  const { data: logsData } = useSessionLogs(sessionId);
   const isConnected = useConnectionStore((state) => state.status === "connected");
 
   return {
     session,
-    logs: logs || session?.logs || [],
+    logs: logsData?.logs || session?.logs || [],
     isLoading,
     isConnected,
   };

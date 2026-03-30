@@ -350,15 +350,32 @@ multi-agent-strands/
 ├── backend/                  # FastAPI + Strands
 │   ├── app/
 │   │   ├── api/              # API routes/endpoints
+│   │   │   ├── sessions.py   # Session management endpoints
+│   │   │   ├── tickets.py    # Ticket processing endpoints
+│   │   │   └── agents.py     # Agent execution endpoints
+│   │   ├── core/             # Core infrastructure
+│   │   │   ├── celery.py     # Celery app configuration
+│   │   │   ├── config.py     # Configuration settings
+│   │   │   ├── event_bus.py  # Event-driven communication
+│   │   │   ├── logging.py    # Structured logging setup
+│   │   │   └── task_queue.py # Celery tasks definition
 │   │   ├── models/           # SQLAlchemy models
-│   │   ├── schemas/          # Pydantic schemas
+│   │   │   ├── agent_session_model.py  # Agent session state
+│   │   │   ├── events.py     # Event log model
+│   │   │   └── ticket_state.py # Ticket processing state
 │   │   ├── services/         # Business logic
+│   │   │   ├── agent_manager.py   # Multi-agent orchestration
+│   │   │   ├── ticket_pipeline.py # Ticket workflow management
+│   │   │   ├── ticket_service.py # Ticket operations
+│   │   │   └── jira_service.py   # Jira integration
 │   │   ├── agents/            # Strands agent definitions
-│   │   ├── tools/            # Custom tools
+│   │   ├── mcp/              # MCP client integrations
 │   │   └── main.py
-│   ├── tests/
+│   ├── migrations/           # Alembic migrations
+│   ├── tests/                # Unit and integration tests
 │   └── requirements.txt
 │
+├── openspec/                 # OpenSpec change artifacts
 ├── docker-compose.yml
 └── AGENTS.md
 ```
@@ -367,12 +384,13 @@ multi-agent-strands/
 
 ## 4. Database Schema
 
-PostgreSQL database with the following tables (to be defined):
-- `users` - System users
-- `tickets` - Jira ticket tracking
-- `agents` - Agent state and history
-- `workspaces` - Agent workspace references
-- `audit_log` - Operation logs
+PostgreSQL database with the following tables:
+- `ticket_states` - Ticket processing state with stage, assigned_agent, context_window (JSON), artifacts (JSON), handoff_history (JSON)
+- `agent_sessions` (v1) - Original session tracking
+- `agent_sessions_v2` - New agent session model with session_id, ticket_id, agent_type, status, current_task, result (JSON), error, retry_count
+- `agent_events` - Agent event log
+- `events` - Event bus event store with event_type, ticket_id, agent_id, payload (JSON), timestamp
+- `agent_sessions` - Legacy agent sessions table
 
 ---
 
@@ -383,6 +401,17 @@ Required environment variables:
 ```bash
 # Database
 DATABASE_URL=postgresql+asyncpg://agent:agent_local@db:5432/multi_agent
+
+# Redis (for Celery)
+REDIS_URL=redis://localhost:6379/0
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# Celery Configuration
+CELERY_MAX_ATTEMPTS=3
+CELERY_INITIAL_WAIT=5
+CELERY_MAX_WAIT=60
+CELERY_MULTIPLIER=2
 
 # LLM
 MINIMAX_API_KEY=your_api_key
@@ -397,6 +426,13 @@ GITHUB_TOKEN=your_github_token
 
 # Frontend
 VITE_SOCKET_URL=http://localhost:8000
+
+# Event Bus
+EVENT_RETENTION_LIMIT=1000
+
+# Agent Configuration
+AGENT_MAX_ITERATIONS=10
+AGENT_TIMEOUT_SECONDS=300
 ```
 
 ---
@@ -456,7 +492,98 @@ MCP integrations:
 
 ---
 
-## 8. Key Conventions
+## 8. Backend Architecture
+
+### 8.1 Task Queue (Celery)
+
+The system uses Celery with Redis broker for async task execution:
+
+```python
+from app.core.task_queue import process_ticket_task, TaskPriority
+
+# Queue a ticket for processing
+task = process_ticket_task.apply_async(
+    args=[ticket_id, agent_type],
+    kwargs={"metadata": {"priority": TaskPriority.HIGH}},
+)
+```
+
+**Key Components:**
+- `backend/app/core/celery.py` - Celery app configuration
+- `backend/app/core/task_queue.py` - Task definitions and retry logic
+
+**Task Status:** PENDING, RUNNING, COMPLETED, FAILED, RETRY
+**Task Priority:** LOW (0), NORMAL (1), HIGH (2), CRITICAL (3)
+
+### 8.2 Event Bus
+
+In-memory event bus with SSE subscriptions for real-time notifications:
+
+```python
+from app.core.event_bus import event_bus, EventType
+
+# Subscribe to events
+async for event in event_bus.subscribe_ticket(ticket_id, last_event_id):
+    print(f"Event: {event.type}, Data: {event.payload}")
+```
+
+**Event Types:** TICKET_RECEIVED, TICKET_UPDATED, TICKET_STAGE_CHANGED, AGENT_STARTED, AGENT_COMPLETED, AGENT_FAILED, AGENT_HANDOFF, ARTIFACT_CREATED, COMMENT_ADDED
+
+### 8.3 Ticket Pipeline
+
+Stage-based ticket processing workflow:
+
+```
+NEW → TRIAGED → IN_ANALYSIS → IN_DEVELOPMENT → IN_REVIEW → IN_TESTING → DONE
+         ↓           ↓             ↓               ↓            ↓
+      BLOCKED ←────────────────────────────────────────────────────
+```
+
+```python
+from app.models.ticket_state import TicketStage
+from app.services.ticket_pipeline import TicketPipeline
+
+pipeline = TicketPipeline(ticket_state)
+await pipeline.transition_to(TicketStage.IN_DEVELOPMENT)
+await pipeline.block("Waiting for clarification")
+await pipeline.unblock(TicketStage.IN_ANALYSIS)
+```
+
+### 8.4 Agent Manager
+
+Multi-agent orchestration with session management and handoffs:
+
+```python
+from app.services.agent_manager import agent_manager, AgentType
+
+# Create session
+context = agent_manager.start_session(ticket_id, AgentType.BACKEND)
+
+# Execute with streaming
+async for chunk in agent_manager.execute_agent(session_id, task):
+    print(chunk)
+
+# Handoff to another agent
+new_context = await agent_manager.handoff(
+    session_id, from_agent="backend", to_agent=AgentType.QA, summary="Code complete"
+)
+```
+
+### 8.5 API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/tickets/{ticket_id}/process` | POST | Queue ticket for processing |
+| `/tickets/{ticket_id}/stage` | POST | Transition ticket stage |
+| `/tickets/{ticket_id}/state` | GET | Get ticket state |
+| `/tickets/events/{ticket_id}/stream` | GET | SSE stream for ticket events |
+| `/sessions` | POST | Create agent session |
+| `/sessions/{session_id}/execute` | POST | Execute agent (streaming) |
+| `/sessions/{session_id}/handoff` | POST | Hand off to another agent |
+| `/sessions/{session_id}` | GET | Get session info |
+| `/sessions/{session_id}` | DELETE | Cleanup session |
+
+## 9. Key Conventions
 
 1. **Always verify changes** - Run tests and lint before considering work complete
 2. **Type safety** - Use TypeScript types and Python type hints everywhere
@@ -468,7 +595,7 @@ MCP integrations:
 
 ---
 
-## 9. OpenSpec Commands (SDD - Specification Driven Development)
+## 10. OpenSpec Commands (SDD - Specification Driven Development)
 
 This project uses OpenSpec for specification-driven development. The following commands are available:
 
@@ -520,7 +647,7 @@ openspec --help
 
 ---
 
-## 10. Project Scaffolding with Official CLIs
+## 11. Project Scaffolding with Official CLIs
 
 **RULE: Always use official CLIs for project scaffolding and initialization.** Manual file creation is only acceptable when no official CLI exists or when extending an existing project.
 
@@ -588,7 +715,7 @@ docker init
 
 ---
 
-## 11. Agent Communication Standards
+## 12. Agent Communication Standards
 
 This section applies to all AI agents working on this project, including but not limited to **Claude Code** and **OpenCode**.
 

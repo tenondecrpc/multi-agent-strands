@@ -5,7 +5,7 @@ from uuid import uuid4
 from app.mcp.polling import (
     search_ready_for_dev_tickets,
 )
-from app.models.agent_session import SessionStatus
+from app.models.agent_session_model import AgentSessionStatus
 
 
 class TestPollingLogic:
@@ -64,7 +64,7 @@ class TestOrchestratorPipeline:
         ):
             mock_session = MagicMock()
             mock_session.id = uuid4()
-            mock_session.status = SessionStatus.RUNNING
+            mock_session.status = AgentSessionStatus.RUNNING
             mock_create_session.return_value = mock_session
 
             mock_agent = MagicMock()

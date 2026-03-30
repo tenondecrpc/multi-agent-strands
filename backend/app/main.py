@@ -8,8 +8,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from socketio import ASGIApp
 
+from app.api.agents import router as agents_router
 from app.api.sessions import router as sessions_router
+from app.api.tickets import router as tickets_router
+from app.core.logging import setup_structlog
 from app.events import sio
+
+setup_structlog()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,9 +23,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 logger.info("Socket.IO server initializing...")
-logger.info(f"  - Async mode: asgi")
-logger.info(f"  - CORS: *")
-logger.info(f"  - Namespaces: /pipeline")
+logger.info("  - Async mode: asgi")
+logger.info("  - CORS: *")
+logger.info("  - Namespaces: /pipeline")
 
 
 @sio.event
@@ -39,7 +44,7 @@ async def lifespan(app: FastAPI):
     try:
         from app.mcp.polling import start_jira_polling
 
-        polling_task = start_jira_polling()
+        start_jira_polling()
         logger.info("Jira polling started successfully")
     except Exception as e:
         logger.error(f"Failed to start Jira polling: {e}")
@@ -58,6 +63,8 @@ app.add_middleware(
 )
 
 app.include_router(sessions_router)
+app.include_router(tickets_router)
+app.include_router(agents_router)
 
 
 @app.get("/health")

@@ -11,7 +11,7 @@ interface MetricsBarProps {
 }
 
 export const MetricsBar = ({
-  metrics,
+  metrics = { tokens_used: 0, duration_seconds: 0, files_created: 0, tests_passed: null },
   isConnected,
   className,
 }: MetricsBarProps) => {

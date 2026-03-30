@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any
 
@@ -70,13 +71,18 @@ class JiraMCPClient:
 
 
 _jira_client: JiraMCPClient | None = None
+_jira_client_lock: asyncio.Lock | None = None
 
 
 async def get_jira_client() -> JiraMCPClient:
-    global _jira_client
+    global _jira_client, _jira_client_lock
     if _jira_client is None:
-        _jira_client = JiraMCPClient()
-        await _jira_client.initialize()
+        if _jira_client_lock is None:
+            _jira_client_lock = asyncio.Lock()
+        async with _jira_client_lock:
+            if _jira_client is None:
+                _jira_client = JiraMCPClient()
+                await _jira_client.initialize()
     return _jira_client
 
 

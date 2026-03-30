@@ -32,7 +32,7 @@ Required variables:
 ### Start All Services
 
 ```bash
-docker compose up -d
+docker compose up -d   # -d runs containers in background (detach)
 ```
 
 Services:
@@ -40,23 +40,93 @@ Services:
 - **Frontend**: http://localhost:3000
 - **PostgreSQL**: localhost:5432
 
+### Verify Services
+
+```bash
+# Backend health check
+curl http://localhost:8000/health
+# Expected: {"status":"healthy"}
+
+# Frontend (should show the app)
+curl http://localhost:3000
+
+# Check container status
+docker compose ps
+```
+
+### Database Migrations
+
+Migrations are **not automatic** - you must run them manually after starting containers:
+
+```bash
+# Run pending migrations (required after first start or model changes)
+docker compose exec backend alembic upgrade head
+
+# Check current migration status
+docker compose exec backend alembic current
+docker compose exec backend alembic history
+
+# Verify tables were created correctly
+docker compose exec db psql -U agent -d multi_agent -c "\dt"
+```
+
 ### View Logs
 
 ```bash
+# All logs ( Ctrl+C to exit)
 docker compose logs -f backend
 docker compose logs -f frontend
+
+# Last 50 lines
+docker compose logs --tail=50 backend
+
+# Last errors only
+docker compose logs --tail=50 backend | grep -i "error\|exception\|traceback"
+
+# Logs since last N minutes
+docker compose logs --since=10m backend
 ```
 
 ### Stop Services
 
 ```bash
+# Stop containers (preserves data)
 docker compose down
+
+# Stop and remove everything (including data volumes)
+docker compose down -v
 ```
 
-### Rebuild (after dependency changes)
+### Restart / Clean Slate
 
 ```bash
-docker compose build --no-cache
+# Full restart with clean state (removes volumes + database)
+docker compose down -v && docker compose up -d && sleep 8 && curl http://localhost:8000/health
+```
+
+### Container Management
+
+```bash
+# Restart a single service
+docker compose restart backend
+docker compose restart frontend
+
+# View resource usage
+docker stats
+
+# Access container shell (for debugging)
+docker compose exec backend sh
+docker compose exec db psql -U agent -d multi_agent
+
+# Pause/unpause services
+docker compose pause
+docker compose unpause
+
+# View container logs in real-time (all services)
+docker compose logs -f
+
+# Check container health status
+docker compose ps --format "table {{.Name}}\t{{.Status}}"
 ```
 
 ---
@@ -148,6 +218,33 @@ npm run dev
 ```
 
 App available at http://localhost:3000
+
+### Docker Development (with pending changes)
+
+```bash
+# Frontend only changed (no new deps) → restart frontend
+docker compose restart frontend
+
+# Frontend changed + npm install → rebuild frontend
+docker compose up -d --build frontend
+
+# Backend only changed → restart backend
+docker compose restart backend
+
+# Backend changed + pip install → rebuild backend + run migrations
+docker compose up -d --build backend && docker compose exec backend alembic upgrade head
+
+# Both frontend + backend changed (no new deps) → rebuild both
+docker compose up -d --build
+
+# Both changed + new npm/pip deps → full rebuild both
+docker compose down && docker compose up -d --build && docker compose exec backend alembic upgrade head
+
+# Force rebuild without cache (fixes stale code issues)
+docker compose up -d --build --no-cache frontend   # only frontend
+docker compose up -d --build --no-cache backend    # only backend
+docker compose up -d --build --no-cache            # all services
+```
 
 ### Running Tests
 

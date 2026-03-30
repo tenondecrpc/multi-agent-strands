@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any
 
@@ -64,13 +65,18 @@ class GitHubMCPClient:
 
 
 _github_client: GitHubMCPClient | None = None
+_github_client_lock: asyncio.Lock | None = None
 
 
 async def get_github_client() -> GitHubMCPClient:
-    global _github_client
+    global _github_client, _github_client_lock
     if _github_client is None:
-        _github_client = GitHubMCPClient()
-        await _github_client.initialize()
+        if _github_client_lock is None:
+            _github_client_lock = asyncio.Lock()
+        async with _github_client_lock:
+            if _github_client is None:
+                _github_client = GitHubMCPClient()
+                await _github_client.initialize()
     return _github_client
 
 
