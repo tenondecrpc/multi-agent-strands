@@ -1,8 +1,15 @@
-import { Dashboard } from './components';
-import './App.css';
+import { Routes, Route } from "react-router-dom";
+import { Dashboard } from "@/pages/Dashboard";
+import { SessionDetail } from "@/pages/SessionDetail";
 
 function App() {
-  return <Dashboard />;
+  return (
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/session/:sessionId" element={<SessionDetail />} />
+    </Routes>
+  );
 }
 
 export default App;

@@ -36,9 +36,10 @@ class JiraMCPClient:
         if not all([self.jira_url, self.jira_email, self.jira_api_token]):
             raise ValueError("JIRA_URL, JIRA_EMAIL, and JIRA_API_TOKEN must be set")
         server_params = self._get_server_params()
-        async with stdio_client(server_params) as (read, write):
-            self._session = ClientSession(read, write)
-            await self._session.initialize()
+        self._streams = stdio_client(server_params)
+        self._read, self._write = await self._streams.__aenter__()
+        self._session = ClientSession(self._read, self._write)
+        await self._session.initialize()
 
     async def list_tools(self) -> list[dict[str, Any]]:
         if not self._session:
@@ -63,6 +64,9 @@ class JiraMCPClient:
         if self._session:
             await self._session.close()
             self._session = None
+        if hasattr(self, "_streams") and self._streams:
+            await self._streams.__aexit__(None, None, None)
+            self._streams = None
 
 
 _jira_client: JiraMCPClient | None = None

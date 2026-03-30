@@ -5,8 +5,10 @@ from contextlib import asynccontextmanager
 import app.config  # noqa: F401 - loads .env at import
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from socketio import ASGIApp
 
+from app.api.sessions import router as sessions_router
 from app.events import sio
 
 logging.basicConfig(
@@ -46,6 +48,16 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Multi-Agent Strands API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(sessions_router)
 
 
 @app.get("/health")
