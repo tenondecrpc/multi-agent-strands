@@ -1,5 +1,8 @@
 import logging
+import os
+import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -12,12 +15,26 @@ from tenacity import (
     wait_exponential,
 )
 
+from app.models.agent_session_model import (
+    AgentSession,
+    AgentType as ModelAgentType,
+    AgentSessionStatus,
+)
 from app.core.celery import celery_app
 from app.core.config import RETRY_CONFIG
 from app.core.logging import get_logger
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
 logger = get_logger(__name__)
+
+sync_database_url = os.getenv(
+    "DATABASE_URL", "postgresql+psycopg2://agent:agent_local@localhost:5432/multi_agent"
+).replace("postgresql+asyncpg", "postgresql+psycopg2")
+
+sync_engine = create_engine(sync_database_url, pool_pre_ping=True)
+SyncSession = sessionmaker(bind=sync_engine)
 
 
 class TaskStatus(str, Enum):
@@ -162,9 +179,25 @@ def process_ticket_task(
 
 
 def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any]:
+    session_id = f"{task_data.ticket_id}-{task_data.agent_type}-{uuid.uuid4().hex[:8]}"
+
+    with SyncSession() as db:
+        agent_session = AgentSession(
+            session_id=session_id,
+            ticket_id=task_data.ticket_id,
+            agent_type=ModelAgentType(task_data.agent_type),
+            status=AgentSessionStatus.RUNNING,
+        )
+        db.add(agent_session)
+        db.commit()
+        db.refresh(agent_session)
+
+    logger.info(f"Created agent session {session_id} for ticket {task_data.ticket_id}")
+
     return {
         "ticket_id": task_data.ticket_id,
         "agent_type": task_data.agent_type,
+        "session_id": session_id,
         "processed": True,
     }
 

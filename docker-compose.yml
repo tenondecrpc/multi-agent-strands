@@ -12,6 +12,33 @@ services:
     networks:
       - app-network
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agent:agent_local@db:5432/multi_agent
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+    restart: on-failure
+
   backend:
     build:
       context: ./backend
@@ -20,6 +47,9 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://agent:agent_local@db:5432/multi_agent
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
       MINIMAX_API_KEY: ${MINIMAX_API_KEY}
       JIRA_URL: ${JIRA_URL}
       JIRA_API_TOKEN: ${JIRA_API_TOKEN}
@@ -29,6 +59,7 @@ services:
       - ./backend:/app
     depends_on:
       - db
+      - redis
     networks:
       - app-network
 

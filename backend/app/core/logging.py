@@ -1,6 +1,6 @@
-import structlog
+import json
 
-from app.core.config import CELERY_TASK_SERIALIZER
+import structlog
 
 
 def setup_structlog():
@@ -13,7 +13,7 @@ def setup_structlog():
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             structlog.processors.UnicodeDecoder(),
-            structlog.processors.JSONRenderer(serializer=CELERY_TASK_SERIALIZER),
+            structlog.processors.JSONRenderer(serializer=json.dumps),
         ],
         context_class=dict,
         logger_factory=structlog.stdlib.LoggerFactory(),
