@@ -7,3 +7,7 @@ python-dotenv>=1.0.0
 alembic>=1.13.0
 strands-agents>=1.33.0
 mcp>=1.0.0
+openai>=1.30.0
+python-socketio==5.10.0
+python-engineio==4.3.1
+aiohttp>=3.8.0,<3.10.0

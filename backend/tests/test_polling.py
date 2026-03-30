@@ -1,10 +1,11 @@
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
+from uuid import uuid4
 
 from app.mcp.polling import (
     search_ready_for_dev_tickets,
 )
-from app.utils import JiraStatus
+from app.models.agent_session import SessionStatus
 
 
 class TestPollingLogic:
@@ -41,15 +42,38 @@ class TestPollingLogic:
 class TestOrchestratorPipeline:
     @pytest.mark.asyncio
     async def test_launch_agent_pipeline_returns_expected_structure(self):
-        with patch("app.agents.orchestrator.get_jira_tools", return_value=[]):
-            with patch("app.agents.orchestrator.Agent") as mock_agent_class:
-                mock_agent = MagicMock()
-                mock_agent.run = AsyncMock(return_value="done")
-                mock_agent_class.return_value = mock_agent
+        with (
+            patch("app.agents.pipeline.create_session") as mock_create_session,
+            patch(
+                "app.agents.pipeline.create_orchestrator_agent",
+                new_callable=AsyncMock,
+            ) as mock_create_agent,
+            patch(
+                "app.agents.pipeline.update_session_status",
+                new_callable=AsyncMock,
+            ),
+            patch("app.agents.pipeline.create_event", new_callable=AsyncMock),
+            patch(
+                "app.agents.pipeline.emit_pipeline_started",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.agents.pipeline.emit_pipeline_completed",
+                new_callable=AsyncMock,
+            ),
+        ):
+            mock_session = MagicMock()
+            mock_session.id = uuid4()
+            mock_session.status = SessionStatus.RUNNING
+            mock_create_session.return_value = mock_session
 
-                from app.agents.orchestrator import launch_agent_pipeline
+            mock_agent = MagicMock()
+            mock_agent.run = AsyncMock(return_value="done")
+            mock_create_agent.return_value = mock_agent
 
-                result = await launch_agent_pipeline("TEST-1")
+            from app.agents.pipeline import launch_agent_pipeline
 
-                assert result["ticket_id"] == "TEST-1"
-                assert result["status"] == "processed"
+            result = await launch_agent_pipeline("TEST-1")
+
+            assert result["ticket_id"] == "TEST-1"
+            assert result["status"] == "completed"
