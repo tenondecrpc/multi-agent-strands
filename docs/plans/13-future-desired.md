@@ -78,3 +78,151 @@ The data access layer is abstracted with a **repository pattern** so the Postgre
 ```
 DynamoDB Streams → Lambda → Socket.IO (FastAPI) → React Dashboard
 ```
+
+## 12.8 Remote Repository Operations
+
+Allow agents to **operate on any GitHub repository** — not just the repo where the agent system lives. This decouples the agent infrastructure from the target codebases, enabling a single deployment to serve multiple projects.
+
+### Problem
+
+Currently agents can only read/write files within their own repository. In real-world scenarios, the code that needs to be modified lives in separate repositories (e.g., a backend API repo, a frontend SPA repo, or a monorepo with multiple services).
+
+### Proposed Solution
+
+#### Environment Configuration
+
+Repositories are declared via environment variables or a YAML config file:
+
+```bash
+# Environment variables
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+GITHUB_ORG=my-org
+
+# Target repositories (comma-separated or config file)
+AGENT_TARGET_REPOS=my-org/backend-api,my-org/frontend-app,my-org/shared-libs
+AGENT_REPOS_CONFIG_PATH=./config/repositories.yaml
+```
+
+```yaml
+# config/repositories.yaml
+repositories:
+  - name: backend-api
+    owner: my-org
+    default_branch: main
+    clone_depth: 1
+    cache_ttl: 3600  # seconds
+    languages: [python]
+
+  - name: frontend-app
+    owner: my-org
+    default_branch: develop
+    cache_ttl: 1800
+    languages: [typescript, javascript]
+
+  - name: infrastructure
+    owner: my-org
+    default_branch: main
+    read_only: true  # agents can reference but not modify
+    languages: [hcl, yaml]
+```
+
+#### Core Capabilities
+
+| Capability | Description |
+|---|---|
+| **Clone & Checkout** | Shallow clone target repos into an isolated workspace per ticket |
+| **Branch Management** | Create feature branches following repo-specific naming conventions |
+| **Cached Workspaces** | Reuse cached clones with `git fetch` to avoid full re-clones |
+| **Cross-Repo References** | Agents can read code from repo A while modifying repo B (e.g., check API contract in backend before updating frontend) |
+| **Pull Request Creation** | Create PRs directly on the target repo via GitHub API/MCP |
+| **Multi-Repo PRs** | A single Jira ticket can produce PRs across multiple repos |
+| **Dependency Awareness** | Detect shared dependencies between repos (e.g., shared types, API contracts) |
+
+#### Architecture
+
+```
+Jira Ticket
+     ↓
+Orchestrator Agent
+     ↓ identifies affected repos
+┌────────────────────────────────┐
+│     RepoManager Service        │
+│  ┌───────┐ ┌───────┐ ┌──────┐ │
+│  │Cache  │ │Clone  │ │Branch│ │
+│  │Layer  │ │Worker │ │Mgr   │ │
+│  └───┬───┘ └───┬───┘ └──┬───┘ │
+│      └─────────┼────────┘     │
+│           Workspace FS         │
+│   /workspaces/{ticket_id}/     │
+│     ├── backend-api/           │
+│     ├── frontend-app/          │
+│     └── shared-libs/           │
+└────────────────────────────────┘
+     ↓
+Specialized Agents operate on isolated workspaces
+     ↓
+PRs created on each affected repo
+```
+
+#### RepoManager Service
+
+```python
+class RepoManager:
+    async def prepare_workspace(self, ticket_id: str, repos: list[str]) -> WorkspacePath:
+        """Clone or restore cached repos into an isolated workspace."""
+
+    async def create_branch(self, repo: str, ticket_id: str, base_branch: str | None = None) -> str:
+        """Create a feature branch on the target repo."""
+
+    async def create_pull_request(self, repo: str, branch: str, title: str, body: str) -> PRResult:
+        """Create a PR on the remote repo via GitHub API."""
+
+    async def sync_cache(self, repo: str) -> None:
+        """Fetch latest changes into the cached clone."""
+
+    async def cleanup_workspace(self, ticket_id: str) -> None:
+        """Remove the isolated workspace after PR creation."""
+```
+
+#### Cache Strategy
+
+- **Layer 1 — Bare clone cache**: Persistent bare clones per repo, updated via `git fetch` on a schedule or before each ticket.
+- **Layer 2 — Worktree per ticket**: `git worktree add` from the bare clone for each ticket workspace. Fast, disk-efficient, fully isolated.
+- **TTL-based invalidation**: Configurable per repo. High-churn repos get shorter TTL.
+- **Disk budget**: Configurable max cache size with LRU eviction.
+
+#### New Environment Variables
+
+```bash
+# Remote repo operations
+AGENT_WORKSPACE_ROOT=/var/agent-workspaces
+AGENT_CACHE_ROOT=/var/agent-cache
+AGENT_CACHE_MAX_SIZE_GB=10
+AGENT_DEFAULT_CACHE_TTL=3600
+AGENT_PR_DRAFT_MODE=true          # create PRs as drafts by default
+AGENT_PR_AUTO_REVIEWERS=true      # assign reviewers from CODEOWNERS
+AGENT_CLONE_DEPTH=1               # default shallow clone depth
+AGENT_MULTI_REPO_STRATEGY=parallel  # parallel | sequential
+```
+
+#### Integration with Existing Pipeline
+
+The ticket pipeline gains a new early stage:
+
+```
+NEW → REPO_SETUP → TRIAGED → IN_ANALYSIS → IN_DEVELOPMENT → ...
+```
+
+During `REPO_SETUP`, the orchestrator:
+1. Identifies which repos are affected (from ticket labels, description, or AI analysis)
+2. Prepares isolated workspaces via `RepoManager`
+3. Creates feature branches on each target repo
+4. Passes workspace paths to specialized agents
+
+#### Security Considerations
+
+- GitHub token scoped to only the declared repos (use fine-grained PATs)
+- `read_only` flag prevents agents from modifying infrastructure or sensitive repos
+- Branch protection rules on target repos remain enforced
+- All PRs require human review (existing human-in-the-loop principle)
+- Workspace cleanup after ticket completion to avoid stale code accumulation

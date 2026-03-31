@@ -13,9 +13,9 @@ This document indexes all plan sections for the Multi-Agent System for Software 
 | 05 | [Development Agents (MVP)](./plans/05-agents.md) | ✅ Completed |
 | 06 | [Security and Guardrails](./plans/06-security-guardrails.md) | — |
 | 07 | [Monitoring Dashboard (MVP)](./plans/07-monitoring-dashboard.md) | ✅ Completed |
-| 08 | [UX/UI Improvements and Frontend Refactoring](./plans/08-frontend-refactoring.md) | 🔄 Next Objective |
-| 09 | [Real Backend Processes](./plans/09-backend-real-processes.md) | 🔄 Next Objective |
-| 10 | [Canvas 2D Assets Improvement](./plans/10-canvas-assets.md) | — |
+| 08 | [UX/UI Improvements and Frontend Refactoring](./plans/08-frontend-refactoring.md) | ✅ Completed |
+| 09 | [Real Backend Processes](./plans/09-backend-real-processes.md) | ✅ Completed |
+| 10 | [Canvas 2D Assets Improvement](./plans/10-canvas-assets.md) | 🔄 Next Objective |
 | 11 | [Human-in-the-Loop: Review and CI/CD](./plans/11-human-in-the-loop.md) | — |
 | 12 | [Operational Runbook](./plans/12-operational-runbook.md) | — |
 | 13 | [Future / Desired](./plans/13-future-desired.md) | — |
