@@ -1,6 +1,6 @@
 ## 1. Setup and Initialization
 
-- [x] 1.1 Verify and configure `MINIMAX_API_KEY` and MiniMax base URL in the environment.
+- [x] 1.1 Verify and configure `LLM_API_KEY` and MiniMax base URL in the environment.
 - [x] 1.2 Initialize the basic file structure for agent definitions within the `backend/app/agents` directory.
 
 ## 2. Tools Integration

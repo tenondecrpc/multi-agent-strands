@@ -32,7 +32,7 @@ cp .env.example .env
 
 Required variables:
 - `DATABASE_URL` - PostgreSQL connection string
-- `MINIMAX_API_KEY` - MiniMax API key for LLM
+- `LLM_API_KEY` - MiniMax API key for LLM
 - `JIRA_URL`, `JIRA_API_TOKEN`, `JIRA_EMAIL` - Jira credentials
 - `GITHUB_TOKEN` - GitHub token
 

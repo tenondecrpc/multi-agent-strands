@@ -219,7 +219,9 @@ def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any
     try:
         from app.agents.pipeline import launch_agent_pipeline
 
-        result = loop.run_until_complete(launch_agent_pipeline(task_data.ticket_id))
+        result = loop.run_until_complete(
+            launch_agent_pipeline(task_data.ticket_id, session_uuid)
+        )
         logger.info(f"Pipeline result for {task_data.ticket_id}: {result}")
         return {
             "ticket_id": task_data.ticket_id,

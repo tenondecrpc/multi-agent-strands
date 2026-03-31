@@ -412,7 +412,7 @@ CELERY_MAX_WAIT=60
 CELERY_MULTIPLIER=2
 
 # LLM
-MINIMAX_API_KEY=your_api_key
+LLM_API_KEY=your_api_key
 
 # Jira (MCP)
 JIRA_URL=your_jira_url

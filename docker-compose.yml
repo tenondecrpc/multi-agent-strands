@@ -29,9 +29,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
-      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
-      MINIMAX_API_URL: ${MINIMAX_API_URL}
-      OPENAI_MODEL: ${OPENAI_MODEL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_API_URL: ${LLM_API_URL}
+      LLM_MODEL_ID: ${LLM_MODEL_ID}
     volumes:
       - ./backend:/app
     depends_on:
@@ -52,7 +52,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
-      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      LLM_API_KEY: ${LLM_API_KEY}
       JIRA_URL: ${JIRA_URL}
       JIRA_API_TOKEN: ${JIRA_API_TOKEN}
       JIRA_EMAIL: ${JIRA_EMAIL}

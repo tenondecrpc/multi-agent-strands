@@ -9,8 +9,8 @@ from strands.models.openai import OpenAIModel
 
 minimax = OpenAIModel(
     client_args={
-        "api_key": MINIMAX_API_KEY,
-        "base_url": MINIMAX_API_URL,  # configurable: api.minimax.io or openrouter
+        "api_key": LLM_API_KEY,
+        "base_url": LLM_API_URL,  # configurable: api.minimax.io or openrouter
     },
     model_id="MiniMax-M2.7",
 )

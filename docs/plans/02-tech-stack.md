@@ -66,7 +66,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://agent:agent_local@db:5432/multi_agent
-      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      LLM_API_KEY: ${LLM_API_KEY}
       JIRA_URL: ${JIRA_URL}
       JIRA_API_TOKEN: ${JIRA_API_TOKEN}
       JIRA_EMAIL: ${JIRA_EMAIL}

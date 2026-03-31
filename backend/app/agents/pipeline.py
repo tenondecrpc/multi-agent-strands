@@ -100,6 +100,35 @@ async def create_session(ticket_id: str) -> AgentSession:
         return agent_session
 
 
+async def get_or_create_session(ticket_id: str, session_uuid: UUID) -> AgentSession:
+    async with async_session_maker() as session:
+        from sqlalchemy import select
+
+        result = await session.execute(
+            select(AgentSession).where(AgentSession.id == session_uuid)
+        )
+        agent_session = result.scalar_one_or_none()
+        if agent_session:
+            session.expunge(agent_session)
+            return agent_session
+        return await create_session(ticket_id)
+
+
+async def _resolve_session(ticket_id: str, session_uuid: UUID | None) -> AgentSession:
+    if session_uuid:
+        async with async_session_maker() as session:
+            from sqlalchemy import select
+
+            result = await session.execute(
+                select(AgentSession).where(AgentSession.id == session_uuid)
+            )
+            agent_session = result.scalar_one_or_none()
+            if agent_session:
+                session.expunge(agent_session)
+                return agent_session
+    return await create_session(ticket_id)
+
+
 async def update_session_status(
     session_id: UUID, status: AgentSessionStatus, error: str | None = None
 ) -> None:
@@ -222,10 +251,12 @@ async def create_event(
     return event
 
 
-async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
+async def launch_agent_pipeline(
+    ticket_id: str, existing_session_id: UUID | None = None
+) -> dict[str, Any]:
     logger.info(f"Launching agent pipeline for ticket: {ticket_id}")
 
-    session = await create_session(ticket_id)
+    session = await _resolve_session(ticket_id, existing_session_id)
     session_id_str = str(session.id)
 
     await create_event(

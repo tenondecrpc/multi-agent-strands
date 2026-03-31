@@ -108,4 +108,4 @@ CLI: `openspec list`, `openspec status --change "<name>"`, `openspec new change 
 
 ## Environment Variables
 
-Required: `DATABASE_URL`, `MINIMAX_API_KEY`, `JIRA_URL`, `JIRA_API_TOKEN`, `JIRA_EMAIL`, `GITHUB_TOKEN`, `VITE_SOCKET_URL`
+Required: `DATABASE_URL`, `LLM_API_KEY`, `JIRA_URL`, `JIRA_API_TOKEN`, `JIRA_EMAIL`, `GITHUB_TOKEN`, `VITE_SOCKET_URL`

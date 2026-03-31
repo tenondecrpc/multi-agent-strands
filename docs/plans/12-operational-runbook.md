@@ -157,11 +157,11 @@ docker compose exec db psql -U agent -d multi_agent -c \
 ```bash
 # Test connectivity
 curl -v https://api.minimax.io/v1/models \
-  -H "Authorization: Bearer $MINIMAX_API_KEY" 2>&1 | head -20
+  -H "Authorization: Bearer $LLM_API_KEY" 2>&1 | head -20
 
 # Check rate limits
 curl -s https://api.minimax.io/v1/usage \
-  -H "Authorization: Bearer $MINIMAX_API_KEY"
+  -H "Authorization: Bearer $LLM_API_KEY"
 ```
 
 **Resolution**:
@@ -181,8 +181,8 @@ curl -s https://api.minimax.io/v1/usage \
 
 **Resolution (manual switch to fallback)**:
 ```bash
-# Change MINIMAX_API_URL in .env to OpenRouter
-sed -i 's|MINIMAX_API_URL=.*|MINIMAX_API_URL=https://openrouter.ai/api/v1|' .env
+# Change LLM_API_URL in .env to OpenRouter
+sed -i 's|LLM_API_URL=.*|LLM_API_URL=https://openrouter.ai/api/v1|' .env
 docker compose restart backend
 ```
 

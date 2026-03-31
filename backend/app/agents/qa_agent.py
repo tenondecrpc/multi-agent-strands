@@ -29,7 +29,7 @@ Workspace root: /Users/tenonde/Projects/personal/multi-agent-strands"""
 def create_qa_agent(model: OpenAIModel | None = None) -> Agent:
     if model is None:
         client = OpenAIModelProvider.get_client()
-        model_name = os.getenv("OPENAI_MODEL", "minimax/minimax-m2.7")
+        model_name = os.getenv("LLM_MODEL_ID", "minimax/minimax-m2.7")
         model = OpenAIModel(client=client, model_id=model_name)
     return Agent(
         system_prompt=QA_AGENT_SYSTEM_PROMPT,
@@ -47,7 +47,7 @@ class OpenAIModelProvider:
             from openai import OpenAI
 
             cls._client = OpenAI(
-                api_key=os.getenv("MINIMAX_API_KEY"),
-                base_url=os.getenv("MINIMAX_API_URL", "https://api.minimax.chat/v1"),
+                api_key=os.getenv("LLM_API_KEY"),
+                base_url=os.getenv("LLM_API_URL", "https://api.minimax.chat/v1"),
             )
         return cls._client
