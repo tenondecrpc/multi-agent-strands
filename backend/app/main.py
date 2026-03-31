@@ -12,7 +12,8 @@ from app.api.agents import router as agents_router
 from app.api.sessions import router as sessions_router
 from app.api.tickets import router as tickets_router
 from app.core.logging import setup_structlog
-from app.events import sio
+from app.core.redis_bridge import RedisEventSubscriber
+from app.events import NAMESPACE, sio
 
 setup_structlog()
 
@@ -27,6 +28,26 @@ logger.info("  - Async mode: asgi")
 logger.info("  - CORS: *")
 logger.info("  - Namespaces: /pipeline")
 
+_subscriber: RedisEventSubscriber | None = None
+
+
+async def _forward_redis_event(event_data: dict) -> None:
+    """Forward events from Redis pub/sub to all Socket.IO clients."""
+    event_name = event_data.get("event_name")
+    data = event_data.get("data", event_data)
+
+    logger.info(f"Forwarding event {event_name}")
+
+    try:
+        await sio.emit(
+            event_name,
+            data,
+            namespace=NAMESPACE,
+        )
+        logger.info(f"Event {event_name} broadcast successfully")
+    except Exception:
+        logger.exception(f"Failed to forward event {event_name}")
+
 
 @sio.event
 async def connect(sid, environ):
@@ -40,11 +61,20 @@ async def disconnect(sid):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _subscriber
+
     logger.info("Application started - Jira webhook endpoint available")
     from app.core.jira_polling import start_jira_polling
 
     start_jira_polling()
+
+    _subscriber = RedisEventSubscriber(_forward_redis_event)
+    await _subscriber.start()
+
     yield
+
+    if _subscriber:
+        await _subscriber.stop()
     logger.info("Shutting down...")
 
 
@@ -66,6 +96,25 @@ app.include_router(agents_router)
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/debug/subscriber")
+async def debug_subscriber():
+    global _subscriber
+    if _subscriber is None:
+        return {"subscriber": "not_initialized"}
+
+    task = _subscriber._task
+    if task is None:
+        return {"subscriber": "no_task"}
+
+    return {
+        "subscriber": "running",
+        "task_done": task.done(),
+        "task_cancelled": task.cancelled(),
+        "task_result": task.result() if task.done() else None,
+        "running_flag": _subscriber._running,
+    }
 
 
 app = ASGIApp(sio, app)

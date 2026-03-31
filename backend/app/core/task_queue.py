@@ -194,9 +194,14 @@ def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any
         with SyncSession() as db:
             from sqlalchemy import update
 
+            session_uuid_obj = (
+                uuid.UUID(session_uuid)
+                if isinstance(session_uuid, str)
+                else session_uuid
+            )
             stmt = (
                 update(AgentSession)
-                .where(AgentSession.id == session_uuid)
+                .where(AgentSession.id == session_uuid_obj)
                 .values(status=AgentSessionStatus.RUNNING)
             )
             db.execute(stmt)
@@ -204,7 +209,9 @@ def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any
     else:
         with SyncSession() as db:
             agent_session = AgentSession(
-                id=session_uuid,
+                id=uuid.UUID(session_uuid)
+                if isinstance(session_uuid, str)
+                else session_uuid,
                 session_id=session_id,
                 ticket_id=task_data.ticket_id,
                 agent_type=ModelAgentType(task_data.agent_type),
@@ -219,8 +226,11 @@ def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any
     try:
         from app.agents.pipeline import launch_agent_pipeline
 
+        session_uuid_obj = (
+            uuid.UUID(session_uuid) if isinstance(session_uuid, str) else session_uuid
+        )
         result = loop.run_until_complete(
-            launch_agent_pipeline(task_data.ticket_id, session_uuid)
+            launch_agent_pipeline(task_data.ticket_id, session_uuid_obj)
         )
         logger.info(f"Pipeline result for {task_data.ticket_id}: {result}")
         return {
@@ -236,9 +246,14 @@ def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any
         with SyncSession() as db:
             from sqlalchemy import update
 
+            session_uuid_obj = (
+                uuid.UUID(session_uuid)
+                if isinstance(session_uuid, str)
+                else session_uuid
+            )
             stmt = (
                 update(AgentSession)
-                .where(AgentSession.id == session_uuid)
+                .where(AgentSession.id == session_uuid_obj)
                 .values(status=AgentSessionStatus.FAILED, error=str(e)[:1000])
             )
             db.execute(stmt)

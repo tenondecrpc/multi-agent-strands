@@ -23,12 +23,12 @@ async def emit_ticket_started(ticket_id: str, session_uuid: str):
         logger.info(
             f"Emitting socket events for {ticket_id} with session {session_uuid}"
         )
-        from app.events import sio
+        from app.events import sio, NAMESPACE
 
         await sio.emit(
             "pipeline_started",
             {"session_id": session_uuid, "ticket_id": ticket_id},
-            namespace="/pipeline",
+            namespace=NAMESPACE,
         )
         await sio.emit(
             "agent_event",
@@ -42,7 +42,7 @@ async def emit_ticket_started(ticket_id: str, session_uuid: str):
                     "progress": 0.1,
                 },
             },
-            namespace="/pipeline",
+            namespace=NAMESPACE,
         )
         logger.info(f"Emitted socket events successfully")
     except Exception as e:
@@ -107,7 +107,9 @@ async def process_ticket_background(ticket_id: str, agent_type: str = "backend")
         session_id = f"{ticket_id}-{agent_type}-{uuid.uuid4().hex[:8]}"
 
         agent_session = AgentSession(
-            id=session_uuid,
+            id=uuid.UUID(session_uuid)
+            if isinstance(session_uuid, str)
+            else session_uuid,
             session_id=session_id,
             ticket_id=ticket_id,
             agent_type=AgentType(agent_type),
@@ -168,7 +170,7 @@ async def process_ticket(
     )
 
     agent_session = AgentSession(
-        id=session_uuid,
+        id=uuid.UUID(session_uuid) if isinstance(session_uuid, str) else session_uuid,
         session_id=session_id,
         ticket_id=ticket_id,
         agent_type=AgentType(request.agent_type),

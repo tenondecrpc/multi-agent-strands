@@ -164,6 +164,7 @@ async def create_event(
         await session.refresh(event)
 
     session_id_str = str(session_id)
+    logger.info(f"Emitting event {event_type.value} for session {session_id_str}")
     if event_type == EventType.AGENT_STARTED:
         await emit_agent_event(
             session_id_str,
@@ -208,30 +209,6 @@ async def create_event(
                 "message": f"Tool call: {payload.get('tool_name', 'unknown')}",
                 "level": "info",
             },
-        )
-    elif event_type == EventType.AGENT_COMPLETED:
-        await emit_agent_event(
-            session_id_str,
-            agent_id,
-            "agent_state_change",
-            {"new_state": "success", "progress": 1},
-        )
-    elif event_type == EventType.AGENT_FAILED:
-        await emit_agent_event(
-            session_id_str,
-            agent_id,
-            "agent_state_change",
-            {
-                "new_state": "error",
-                "error": payload.get("error", "") if payload else "",
-            },
-        )
-    elif event_type == EventType.LOG:
-        await emit_agent_event(
-            session_id_str,
-            agent_id,
-            "agent_log",
-            payload,
         )
     elif event_type == EventType.LLM_CREDIT_EXHAUSTED:
         await emit_agent_event(

@@ -134,6 +134,28 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
       });
     };
 
+    const onPipelineCompleted = (data: { session_id: string; ticket_id: string; result: any }) => {
+      console.log('[Socket] pipeline_completed received:', data);
+      addLog({
+        id: `${Date.now()}-${Math.random()}`,
+        agent_id: "system",
+        message: `Pipeline completed for ticket: ${data.ticket_id}`,
+        level: "success",
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    const onPipelineError = (data: { session_id: string; ticket_id: string; error: string }) => {
+      console.log('[Socket] pipeline_error received:', data);
+      addLog({
+        id: `${Date.now()}-${Math.random()}`,
+        agent_id: "system",
+        message: `Pipeline error: ${data.error}`,
+        level: "error",
+        timestamp: new Date().toISOString(),
+      });
+    };
+
     const onAgentEvent = (event: any) => {
       console.log('[Socket] Received agent_event:', event);
       const payload = event.payload || {};
@@ -150,6 +172,15 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
             task: payload.task || existingAgent.task,
             progress: payload.progress ?? existingAgent.progress,
           });
+        } else {
+          updateAgent({
+            id: agentId,
+            name: agentId.charAt(0).toUpperCase() + agentId.slice(1),
+            role: agentId as Agent["role"],
+            state: payload.new_state || payload.state || "working",
+            task: payload.task,
+            progress: payload.progress ?? 0.5,
+          });
         }
       }
 
@@ -163,15 +194,39 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
         });
       }
 
+      if (event.type === "llm_credit_exhausted") {
+        addLog({
+          id: `${Date.now()}-${Math.random()}`,
+          agent_id: "system",
+          message: `LLM credit exhausted: ${payload.error || 'Unknown error'}`,
+          level: "error",
+          timestamp: event.timestamp || new Date().toISOString(),
+        });
+      }
+
+      if (event.type === "llm_rate_limited") {
+        addLog({
+          id: `${Date.now()}-${Math.random()}`,
+          agent_id: "system",
+          message: `LLM rate limited (retry ${payload.retry_count || 0}): ${payload.error || 'Unknown error'}`,
+          level: "warning",
+          timestamp: event.timestamp || new Date().toISOString(),
+        });
+      }
+
       onEvent?.(event);
     };
 
     socket.on("pipeline_started", onPipelineStarted);
+    socket.on("pipeline_completed", onPipelineCompleted);
+    socket.on("pipeline_error", onPipelineError);
     socket.on("agent_event", onAgentEvent);
 
     return () => {
       leaveSession(sessionId);
       socket.off("pipeline_started", onPipelineStarted);
+      socket.off("pipeline_completed", onPipelineCompleted);
+      socket.off("pipeline_error", onPipelineError);
       socket.off("agent_event", onAgentEvent);
     };
   }, [sessionId, onEvent, updateAgent, addLog]);

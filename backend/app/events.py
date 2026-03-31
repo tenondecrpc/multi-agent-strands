@@ -1,6 +1,8 @@
 import logging
 import socketio
 
+from app.core.redis_bridge import publish_event
+
 logger = logging.getLogger(__name__)
 
 sio = socketio.AsyncServer(
@@ -35,29 +37,39 @@ class PipelineNamespace(socketio.AsyncNamespace):
 sio.register_namespace(PipelineNamespace(NAMESPACE))
 
 
+async def _emit_to_room(event_name: str, data: dict, session_id: str) -> None:
+    """Publish event to Redis for cross-process delivery."""
+    payload = {
+        "event_name": event_name,
+        "data": data,
+        "session_id": session_id,
+    }
+    await publish_event(payload)
+
+
 async def emit_pipeline_started(session_id: str, ticket_id: str) -> None:
-    await sio.emit(
+    await _emit_to_room(
         "pipeline_started",
         {"session_id": session_id, "ticket_id": ticket_id},
-        namespace=NAMESPACE,
+        session_id,
     )
 
 
 async def emit_pipeline_completed(
     session_id: str, ticket_id: str, result: dict
 ) -> None:
-    await sio.emit(
+    await _emit_to_room(
         "pipeline_completed",
         {"session_id": session_id, "ticket_id": ticket_id, "result": result},
-        namespace=NAMESPACE,
+        session_id,
     )
 
 
 async def emit_pipeline_error(session_id: str, ticket_id: str, error: str) -> None:
-    await sio.emit(
+    await _emit_to_room(
         "pipeline_error",
         {"session_id": session_id, "ticket_id": ticket_id, "error": error},
-        namespace=NAMESPACE,
+        session_id,
     )
 
 
@@ -72,10 +84,10 @@ async def emit_agent_event(
         "session_id": session_id,
         "payload": (payload or {}) | {"agent_id": agent_id},
     }
-    await sio.emit(
+    await _emit_to_room(
         "agent_event",
         event_data,
-        namespace=NAMESPACE,
+        session_id,
     )
 
 
@@ -88,7 +100,7 @@ async def emit_llm_credit_exhausted(
     logger.warning(
         f"LLM credit exhausted: session={session_id}, ticket={ticket_id}, agent_type={agent_type}"
     )
-    await sio.emit(
+    await _emit_to_room(
         "llm_credit_exhausted",
         {
             "session_id": session_id,
@@ -97,7 +109,7 @@ async def emit_llm_credit_exhausted(
             "agent_type": agent_type,
             "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
         },
-        namespace=NAMESPACE,
+        session_id,
     )
 
 
@@ -111,7 +123,7 @@ async def emit_llm_rate_limited(
     logger.warning(
         f"LLM rate limited: session={session_id}, ticket={ticket_id}, agent_type={agent_type}, retry={retry_count}"
     )
-    await sio.emit(
+    await _emit_to_room(
         "llm_rate_limited",
         {
             "session_id": session_id,
@@ -121,5 +133,5 @@ async def emit_llm_rate_limited(
             "retry_count": retry_count,
             "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
         },
-        namespace=NAMESPACE,
+        session_id,
     )
