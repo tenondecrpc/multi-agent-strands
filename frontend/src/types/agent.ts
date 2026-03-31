@@ -1,4 +1,4 @@
-export type AgentRole = 'architect' | 'backend' | 'frontend' | 'qa';
+export type AgentRole = 'orchestrator' | 'backend' | 'frontend' | 'qa' | 'architect';
 
 export type AgentState = 'idle' | 'thinking' | 'working' | 'waiting' | 'success' | 'error';
 
@@ -14,6 +14,20 @@ export type EventType =
   | 'budget_exceeded'
   | 'llm_credit_exhausted'
   | 'llm_rate_limited';
+
+export const DEFAULT_AGENTS: Agent[] = [
+  { id: "orchestrator", name: "Orchestrator", role: "orchestrator", state: "idle" },
+  { id: "backend_agent", name: "Backend Agent", role: "backend", state: "idle" },
+  { id: "frontend_agent", name: "Frontend Agent", role: "frontend", state: "idle" },
+  { id: "qa_agent", name: "QA Agent", role: "qa", state: "idle" },
+];
+
+export const AGENT_ID_TO_ROLE: Record<string, AgentRole> = {
+  "orchestrator": "orchestrator",
+  "backend_agent": "backend",
+  "frontend_agent": "frontend",
+  "qa_agent": "qa",
+};
 
 export interface Agent {
   id: string;

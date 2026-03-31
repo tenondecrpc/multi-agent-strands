@@ -48,10 +48,10 @@ function AgentConnection({
       y1={from.y}
       x2={to.x}
       y2={to.y}
-      stroke={active ? "#4A90D9" : "#ccc"}
-      strokeWidth={active ? 2 : 1}
+      stroke={active ? "var(--color-primary)" : "var(--color-border)"}
+      strokeWidth={active ? 2 : 1.5}
       strokeDasharray={active ? "8 4" : "none"}
-      className={active ? "animate-dash" : ""}
+      className={active ? "animate-pulse" : ""}
     />
   );
 }
@@ -77,25 +77,12 @@ export const AgentCanvas = ({ agents, ticketId, className }: AgentCanvasProps) =
   };
 
   return (
-    <div className={cn("agent-canvas", className)}>
+    <div className={cn("agent-canvas rounded-lg border bg-card text-card-foreground shadow-sm w-full h-full flex items-center justify-center p-6", className)}>
       <svg
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
+        width="100%"
+        height="100%"
         viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
       >
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="#4A90D9" />
-          </marker>
-        </defs>
-
         {CONNECTIONS.map(([from, to]) => (
           <AgentConnection
             key={`${from}-${to}`}
@@ -122,6 +109,7 @@ export const AgentCanvas = ({ agents, ticketId, className }: AgentCanvasProps) =
             textAnchor="middle"
             fontSize="16"
             fontWeight="bold"
+            fill="var(--color-foreground)"
           >
             Ticket: {ticketId}
           </text>

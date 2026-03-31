@@ -41,9 +41,9 @@ socket.on('connect_error', (error) => {
   console.error('[Socket] Connection error:', error.message);
 });
 
-socket.on('error', (error) => {
-  console.error('[Socket] Error:', error);
-});
+// socket.on('error', (error) => {
+//   console.error('[Socket] Error:', error);
+// });
 
 export function connectSocket(): void {
   console.log('[Socket] connectSocket() called, connected:', socket.connected);

@@ -6,6 +6,7 @@ import { useSessionStore } from "@/lib/stores/sessionStore";
 import { useConnectionStore } from "@/lib/stores/connectionStore";
 import { useSocket } from "@/hooks/useSocket";
 import { api } from "@/lib/api/client";
+import type { Agent } from "@/types/agent";
 
 interface SessionResponse {
   session_id: string;
@@ -22,25 +23,25 @@ export const SessionDetail = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [loading, setLoading] = useState(true);
+
   const isConnected = useConnectionStore((state) => state.status === "connected");
   const socketAgentStates = useSessionStore((state) => state.agentStates);
   const socketLogs = useSessionStore((state) => state.logs);
 
-  const { agents: socketAgents, logs: socketLogsData } = useSocket({ 
-    sessionId: session?.session_id, 
-    onEvent: undefined 
+  // Retrieve live logs from socket; agents are derived from socketAgentStates if available
+  const { logs: socketLogsData } = useSocket({
+    sessionId: session?.session_id ?? null,
+    onEvent: undefined,
   });
 
   useEffect(() => {
     if (!ticketId) return;
-
     const fetchSession = async () => {
       try {
         const response = await api.get<{ session_id: string; ticket_id: string }>(
           `/sessions/ticket/${ticketId}/active`
         );
         const sessionId = response.data.session_id;
-
         const sessionResponse = await api.get<SessionResponse>(`/sessions/${sessionId}`);
         setSession(sessionResponse.data);
       } catch (error) {
@@ -50,7 +51,6 @@ export const SessionDetail = () => {
         setLoading(false);
       }
     };
-
     fetchSession();
   }, [ticketId]);
 
@@ -71,8 +71,16 @@ export const SessionDetail = () => {
   }
 
   const hasSocketData = Object.keys(socketAgentStates).length > 0;
-  const agents = hasSocketData ? Object.values(socketAgentStates) : session.agents;
-  const logs = socketLogsData.length > 0 ? socketLogsData : (socketLogs.length > 0 ? socketLogs : session.logs);
+  const agents: Agent[] = hasSocketData
+    ? Object.values(socketAgentStates)
+    : session.agents.map((a) => ({
+        id: a.id,
+        name: a.name,
+        role: a.role as any,
+        state: a.state as any,
+      }));
+
+  const logs = socketLogsData.length > 0 ? socketLogsData : socketLogs.length > 0 ? socketLogs : session.logs;
 
   return (
     <SessionLayout

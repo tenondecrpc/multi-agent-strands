@@ -21,8 +21,8 @@ export const DashboardLayout = ({ children, className }: DashboardLayoutProps) =
         </Button>
         <h1 className="text-lg font-semibold">Multi-Agent System</h1>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
-            <Icon name={theme === "dark" ? "user" : "user"} />
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
+            <Icon name={theme === "dark" ? "sun" : "moon"} />
           </Button>
         </div>
       </header>

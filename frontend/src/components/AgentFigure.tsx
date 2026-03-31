@@ -5,10 +5,11 @@ interface AgentFigureProps {
 }
 
 const ROLE_COLORS: Record<AgentRole, string> = {
-  architect: '#1E3A5F',
-  backend: '#0D7377',
-  frontend: '#FF6B6B',
-  qa: '#F0932B',
+  orchestrator: '#6b7280', // gray-500
+  architect: '#818cf8', // indigo-400
+  backend: '#2dd4bf',   // teal-400
+  frontend: '#f472b6',  // pink-400
+  qa: '#fbbf24',        // amber-400
 };
 
 const ANIMATION_CLASS: Record<AgentState, string> = {
@@ -26,22 +27,22 @@ function AgentSprite({ role, state }: { role: AgentRole; state: AgentState }) {
   return (
     <g className={`agent-sprite agent-${role}`}>
       <circle cx="0" cy="-20" r="25" fill={color} />
-      <circle cx="-8" cy="-25" r="4" fill="white" />
-      <circle cx="8" cy="-25" r="4" fill="white" />
+      <circle cx="-8" cy="-25" r="4" fill="var(--color-foreground)" />
+      <circle cx="8" cy="-25" r="4" fill="var(--color-foreground)" />
       {state === 'success' && (
-        <path d="M -8 -15 Q 0 -5 8 -15" stroke="white" strokeWidth="3" fill="none" />
+        <path d="M -8 -15 Q 0 -5 8 -15" stroke="var(--color-foreground)" strokeWidth="3" fill="none" />
       )}
       {state === 'error' && (
         <>
-          <line x1="-5" y1="-30" x2="5" y2="-20" stroke="white" strokeWidth="2" />
-          <line x1="5" y1="-30" x2="-5" y2="-20" stroke="white" strokeWidth="2" />
+          <line x1="-5" y1="-30" x2="5" y2="-20" stroke="var(--color-background)" strokeWidth="2" />
+          <line x1="5" y1="-30" x2="-5" y2="-20" stroke="var(--color-background)" strokeWidth="2" />
         </>
       )}
       {state === 'thinking' && (
         <g className="thought-bubble">
-          <circle cx="30" cy="-45" r="5" fill="#eee" />
-          <circle cx="40" cy="-55" r="8" fill="#eee" />
-          <circle cx="55" cy="-60" r="12" fill="#eee" />
+          <circle cx="30" cy="-45" r="5" fill="var(--color-muted)" />
+          <circle cx="40" cy="-55" r="8" fill="var(--color-muted)" />
+          <circle cx="55" cy="-60" r="12" fill="var(--color-muted)" />
         </g>
       )}
       {role === 'architect' && (
@@ -70,19 +71,19 @@ function ProgressRing({ progress }: { progress: number }) {
 
   return (
     <g className="progress-ring" transform="translate(0, 20)">
-      <circle cx="0" cy="0" r={radius} fill="none" stroke="#eee" strokeWidth="4" />
+      <circle cx="0" cy="0" r={radius} fill="none" stroke="var(--color-border)" strokeWidth="4" />
       <circle
         cx="0"
         cy="0"
         r={radius}
         fill="none"
-        stroke="#4A90D9"
+        stroke="var(--color-primary)"
         strokeWidth="4"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
         transform="rotate(-90)"
       />
-      <text textAnchor="middle" dy="4" fontSize="12" fill="#333">
+      <text textAnchor="middle" dy="4" fontSize="12" fill="var(--color-foreground)">
         {Math.round(progress * 100)}%
       </text>
     </g>
@@ -99,11 +100,11 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
 
       {agent.state === 'working' && agent.progress != null && <ProgressRing progress={agent.progress} />}
 
-      <text className="agent-name" textAnchor="middle" y={50} fontSize="14" fontWeight="bold">
+      <text className="agent-name" textAnchor="middle" y={50} fontSize="14" fontWeight="bold" fill="var(--color-foreground)">
         {agent.name}
       </text>
       {agent.task && (
-        <text className="agent-task" textAnchor="middle" y={68} fontSize="10" fill="#666">
+        <text className="agent-task" textAnchor="middle" y={68} fontSize="10" fill="var(--color-muted-foreground)">
           {agent.task}
         </text>
       )}
@@ -112,7 +113,7 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
         textAnchor="middle"
         y={85}
         fontSize="9"
-        fill={agent.state === 'error' ? '#d00' : '#888'}
+        fill={agent.state === 'error' ? 'var(--color-destructive)' : 'var(--color-muted-foreground)'}
       >
         {agent.state}
       </text>

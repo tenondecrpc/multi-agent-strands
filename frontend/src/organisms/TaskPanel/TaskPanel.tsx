@@ -11,12 +11,12 @@ interface TaskPanelProps {
 }
 
 const STATE_COLORS: Record<string, string> = {
-  idle: "#888",
-  thinking: "#f0ad4e",
-  working: "#4A90D9",
-  waiting: "#17a2b8",
-  success: "#28a745",
-  error: "#dc3545",
+  idle: "var(--color-muted-foreground)",
+  thinking: "var(--color-primary)",
+  working: "var(--color-primary)",
+  waiting: "var(--color-muted)",
+  success: "var(--color-primary)",
+  error: "var(--color-destructive)",
 };
 
 const STATE_ICONS: Record<string, string> = {
@@ -46,7 +46,7 @@ export const TaskPanel = ({ ticketId, agents, className }: TaskPanelProps) => {
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className="task-item flex items-center gap-3 rounded-md border p-2"
+              className="task-item flex items-center gap-3 rounded-md border p-2 bg-muted/20"
             >
               <span
                 className="task-icon text-lg"

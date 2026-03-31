@@ -6,8 +6,9 @@ export function useScrollToBottom<T extends HTMLDivElement>(
   const ref = useRef<T>(null);
 
   useEffect(() => {
-    if (ref.current) {
-      ref.current.scrollIntoView({ behavior: "smooth" });
+    if (ref.current && ref.current.parentElement) {
+      const parent = ref.current.parentElement;
+      parent.scrollTop = parent.scrollHeight;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

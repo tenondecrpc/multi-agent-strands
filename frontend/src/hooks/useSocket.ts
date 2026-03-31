@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef, useMemo } from "react";
-import { shallow } from "zustand/shallow";
+// // import type { Agent } from "@/types/agent"; // shallow not used // shallow not used
 import {
   socket,
   connectSocket,
@@ -11,9 +11,8 @@ import { useConnectionStore } from "@/lib/stores/connectionStore";
 import type {
   AgentEvent,
   Agent,
-  AgentState,
-  AgentStateChangePayload,
-  AgentLogPayload,
+  //  // AgentState, // not used // not used
+  AgentLog,
 } from "@/types/agent";
 
 interface UseSocketOptions {
@@ -21,26 +20,20 @@ interface UseSocketOptions {
   onEvent?: (event: AgentEvent) => void;
 }
 
-const AGENT_SEQUENCE: { id: string; delay: number }[] = [
-  { id: "architect", delay: 0 },
-  { id: "backend_agent", delay: 2000 },
-  { id: "frontend_agent", delay: 4000 },
-  { id: "qa_agent", delay: 6000 },
-];
+// AGENT_SEQUENCE removed as it is unused
 
 const DEFAULT_AGENTS: Agent[] = [
-  { id: "architect", name: "Architect", role: "architect", state: "idle" },
+  { id: "orchestrator", name: "Orchestrator", role: "orchestrator", state: "idle" },
   { id: "backend_agent", name: "Backend Agent", role: "backend", state: "idle" },
   { id: "frontend_agent", name: "Frontend Agent", role: "frontend", state: "idle" },
   { id: "qa_agent", name: "QA Agent", role: "qa", state: "idle" },
 ];
 
 const AGENT_ID_TO_ROLE: Record<string, Agent["role"]> = {
-  architect: "architect",
+  orchestrator: "orchestrator",
   backend_agent: "backend",
   frontend_agent: "frontend",
   qa_agent: "qa",
-  orchestrator: "architect",
 };
 
 export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
@@ -57,38 +50,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
     animationTimeouts.current = [];
   }, []);
 
-  const startAgentSequence = useCallback(
-    (ticketId: string) => {
-      clearAnimations();
-
-      AGENT_SEQUENCE.forEach(({ id, delay }) => {
-        const timeout = setTimeout(() => {
-          updateAgent({
-            id,
-            name: DEFAULT_AGENTS.find((a) => a.id === id)?.name || id,
-            role: id as Agent["role"],
-            state: "working" as AgentState,
-            task: `Processing ${ticketId}`,
-            progress: 0.5,
-          });
-        }, delay);
-        animationTimeouts.current.push(timeout);
-      });
-
-      const finalTimeout = setTimeout(() => {
-        DEFAULT_AGENTS.forEach((agent) => {
-          updateAgent({
-            ...agent,
-            state: "success" as AgentState,
-            task: undefined,
-            progress: 1,
-          });
-        });
-      }, 10000);
-      animationTimeouts.current.push(finalTimeout);
-    },
-    [clearAnimations, updateAgent]
-  );
+// startAgentSequence removed as unused
 
   const resetAgents = useCallback(() => {
     clearAnimations();
@@ -148,7 +110,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
         id: `${Date.now()}-${Math.random()}`,
         agent_id: "system",
         message: `Pipeline completed for ticket: ${data.ticket_id}`,
-        level: "success",
+        level: "info",
         timestamp: new Date().toISOString(),
       });
     };
@@ -221,7 +183,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
           id: `${Date.now()}-${Math.random()}`,
           agent_id: "system",
           message: `LLM rate limited (retry ${payload.retry_count || 0}): ${payload.error || 'Unknown error'}`,
-          level: "warning",
+          level: "warn",
           timestamp: event.timestamp || new Date().toISOString(),
         });
       }
@@ -243,13 +205,13 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
     };
   }, [sessionId, onEvent, updateAgent, addLog]);
 
-  const agentStates = useSessionStore((state) => state.agentStates, shallow);
-  const logs = useSessionStore((state) => state.logs, shallow);
+  const agentStates = useSessionStore((state) => state.agentStates);
+  const logs = useSessionStore((state) => state.logs);
   const isConnected = useConnectionStore((state) => state.status === "connected");
 
-  const agents = useMemo(() => Object.values(agentStates), [agentStates]);
-  const agentList = agents.length > 0 ? agents : [];
-  const logList = logs.length > 0 ? logs : [];
+  const agents = useMemo(() => Object.values(agentStates) as Agent[], [agentStates]);
+  const agentList = agents.length > 0 ? agents : [] as Agent[];
+  const logList = logs.length > 0 ? logs : [] as AgentLog[];
 
   return {
     isConnected,
