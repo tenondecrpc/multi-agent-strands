@@ -96,31 +96,53 @@ async def process_ticket_background(ticket_id: str, agent_type: str = "backend")
         ticket_state = result.scalar_one_or_none()
 
         if not ticket_state:
-            ticket_state = TicketState(
-                ticket_id=ticket_id, current_stage=TicketStage.NEW
-            )
-            db.add(ticket_state)
-            await db.commit()
-            await db.refresh(ticket_state)
+            try:
+                ticket_state = TicketState(
+                    ticket_id=ticket_id, current_stage=TicketStage.NEW
+                )
+                db.add(ticket_state)
+                await db.commit()
+                await db.refresh(ticket_state)
+            except Exception:
+                await db.rollback()
+                result = await db.execute(
+                    select(TicketState).where(TicketState.ticket_id == ticket_id)
+                )
+                ticket_state = result.scalar_one_or_none()
+                if not ticket_state:
+                    raise
 
         session_uuid = str(uuid.uuid4())
         session_id = f"{ticket_id}-{agent_type}-{uuid.uuid4().hex[:8]}"
 
-        agent_session = AgentSession(
-            id=uuid.UUID(session_uuid)
-            if isinstance(session_uuid, str)
-            else session_uuid,
-            session_id=session_id,
-            ticket_id=ticket_id,
-            agent_type=AgentType(agent_type),
-            status=AgentSessionStatus.RUNNING,
-        )
-        db.add(agent_session)
+        try:
+            agent_session = AgentSession(
+                id=uuid.UUID(session_uuid),
+                session_id=session_id,
+                ticket_id=ticket_id,
+                agent_type=AgentType(agent_type),
+                status=AgentSessionStatus.RUNNING,
+            )
+            db.add(agent_session)
 
-        ticket_state.active_session_id = session_uuid
-        db.add(ticket_state)
+            ticket_state.active_session_id = session_uuid
+            db.add(ticket_state)
 
-        await db.commit()
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            session_uuid = str(uuid.uuid4())
+            agent_session = AgentSession(
+                id=uuid.UUID(session_uuid),
+                session_id=session_id,
+                ticket_id=ticket_id,
+                agent_type=AgentType(agent_type),
+                status=AgentSessionStatus.RUNNING,
+            )
+            db.add(agent_session)
+            ticket_state.active_session_id = session_uuid
+            db.add(ticket_state)
+            await db.commit()
 
         task = process_ticket_task.apply_async(
             args=[ticket_id, agent_type],
@@ -169,15 +191,30 @@ async def process_ticket(
         else f"{ticket_id}-{request.agent_type}"
     )
 
-    agent_session = AgentSession(
-        id=uuid.UUID(session_uuid) if isinstance(session_uuid, str) else session_uuid,
-        session_id=session_id,
-        ticket_id=ticket_id,
-        agent_type=AgentType(request.agent_type),
-        status=AgentSessionStatus.RUNNING,
-    )
-    db.add(agent_session)
-    await db.commit()
+    try:
+        agent_session = AgentSession(
+            id=uuid.UUID(session_uuid)
+            if isinstance(session_uuid, str)
+            else session_uuid,
+            session_id=session_id,
+            ticket_id=ticket_id,
+            agent_type=AgentType(request.agent_type),
+            status=AgentSessionStatus.RUNNING,
+        )
+        db.add(agent_session)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        session_uuid = str(uuid.uuid4())
+        agent_session = AgentSession(
+            id=uuid.UUID(session_uuid),
+            session_id=session_id,
+            ticket_id=ticket_id,
+            agent_type=AgentType(request.agent_type),
+            status=AgentSessionStatus.RUNNING,
+        )
+        db.add(agent_session)
+        await db.commit()
 
     task = process_ticket_task.apply_async(
         args=[ticket_id, request.agent_type],

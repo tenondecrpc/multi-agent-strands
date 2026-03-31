@@ -254,15 +254,52 @@ async def launch_agent_pipeline(
 
         async def _run_with_streaming():
             result_text = []
+            pending_tools: set[str] = set()
+            emitted_started: set[str] = set()
+            emitted_completed: set[str] = set()
+
+            async def _emit_tool_completed(tool_name: str):
+                if tool_name in emitted_completed:
+                    return
+                emitted_completed.add(tool_name)
+                await create_event(
+                    session.id,
+                    "orchestrator",
+                    EventType.TOOL_CALL,
+                    {"tool_name": tool_name, "status": "completed"},
+                )
+                await emit_agent_event(
+                    session_id_str,
+                    "orchestrator",
+                    "agent_log",
+                    {
+                        "message": f"Tool result: {tool_name} (completed)",
+                        "level": "info",
+                        "progress": 0.5,
+                    },
+                )
+
             async for event in agent.stream_async(prompt):
-                logger.debug(f"Stream event type: {type(event)}, value: {event}")
+                logger.debug(
+                    f"Stream event: {type(event).__name__} | keys: {list(event.keys()) if isinstance(event, dict) else 'N/A'}"
+                )
 
-                if isinstance(event, dict):
-                    event_type = event.get("type", "")
-                    content = event.get("content", "")
+                if not isinstance(event, dict):
+                    continue
 
-                    if event_type == "tool_use":
-                        tool_name = event.get("name", "unknown")
+                if "current_tool_use" in event:
+                    tool_use = event["current_tool_use"]
+                    tool_name = tool_use.get("name", "unknown")
+
+                    for pending_name in list(pending_tools):
+                        if pending_name != tool_name:
+                            await _emit_tool_completed(pending_name)
+                    pending_tools.clear()
+
+                    pending_tools.add(tool_name)
+
+                    if tool_name not in emitted_started:
+                        emitted_started.add(tool_name)
                         await create_event(
                             session.id,
                             "orchestrator",
@@ -274,54 +311,39 @@ async def launch_agent_pipeline(
                             "orchestrator",
                             "agent_log",
                             {
-                                "message": f"Tool call started: {tool_name}",
+                                "message": f"Tool call: {tool_name}",
                                 "level": "info",
                                 "progress": 0.2,
                             },
                         )
-                    elif event_type == "tool_result":
-                        await create_event(
-                            session.id,
-                            "orchestrator",
-                            EventType.TOOL_CALL,
-                            {"tool_name": str(content)[:100], "status": "completed"},
-                        )
-                        await emit_agent_event(
-                            session_id_str,
-                            "orchestrator",
-                            "agent_log",
-                            {
-                                "message": f"Tool call completed: {str(content)[:100]}",
-                                "level": "info",
-                                "progress": 0.5,
-                            },
-                        )
-                    elif event_type in ("text", "content"):
-                        result_text.append(str(content))
-                    elif event_type == "error":
-                        logger.warning(f"Stream event error: {content}")
-                    else:
-                        result_text.append(str(event))
-                else:
-                    event_str = str(event)
-                    if hasattr(event, "__dict__"):
-                        event_type_name = type(event).__name__
-                        logger.debug(f"Event attributes: {event.__dict__}")
-                        if (
-                            "tool_use" in event_str.lower()
-                            or "ToolUse" in event_type_name
-                        ):
-                            await emit_agent_event(
-                                session_id_str,
-                                "orchestrator",
-                                "agent_log",
-                                {
-                                    "message": f"Executing: {event_type_name}",
-                                    "level": "info",
-                                    "progress": 0.2,
-                                },
-                            )
-                    result_text.append(event_str)
+
+                elif "text" in event:
+                    text = event.get("text", "")
+                    if text:
+                        result_text.append(text)
+
+                elif "delta_data" in event:
+                    delta = event.get("delta_data", {})
+                    if isinstance(delta, dict):
+                        for choice in delta.get("choices", []):
+                            content_block = choice.get("delta", {}).get("content", "")
+                            if content_block:
+                                result_text.append(str(content_block))
+
+                elif "init_event_loop" in event:
+                    await create_event(
+                        session.id,
+                        "orchestrator",
+                        EventType.AGENT_STARTED,
+                        {"ticket_id": ticket_id},
+                    )
+
+                elif "result" in event:
+                    result_text.append(str(event.get("result", "")))
+
+            for tool_name in list(pending_tools):
+                await _emit_tool_completed(tool_name)
+            pending_tools.clear()
 
             return "".join(result_text) if result_text else "No result"
 
