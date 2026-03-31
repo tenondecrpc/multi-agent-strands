@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import type { Agent, AgentRole, AgentState } from "@/types/agent";
-import juliaIdle from "@/assets/free-office-pixel-art/Julia-Idle.png";
-import juliaWorking from "@/assets/free-office-pixel-art/Julia_PC.png";
-import juliaCoffee from "@/assets/free-office-pixel-art/Julia_Drinking_Coffee.png";
+import boss from "@/assets/free-office-pixel-art/boss.png";
+import worker1 from "@/assets/free-office-pixel-art/worker1.png";
+import worker2 from "@/assets/free-office-pixel-art/worker2.png";
+import worker4 from "@/assets/free-office-pixel-art/worker4.png";
 
 interface AgentFigureProps {
   agent: Agent;
@@ -15,84 +16,57 @@ const ROLE_COLORS: Record<AgentRole, string> = {
   qa: '#fbbf24',
 };
 
-const PixelAnimations = () => (
-  <style>{`
-    @keyframes play-sprite-idle {
-      100% { background-position: -128px; }
-    }
-    @keyframes play-sprite-working {
-      100% { background-position: -384px; }
-    }
-    @keyframes play-sprite-coffee {
-      100% { background-position: -96px; }
-    }
-    .pixelSprite {
-      image-rendering: pixelated;
-      background-repeat: no-repeat;
-    }
-    .sprite-idle {
-      width: 32px;
-      height: 32px;
-      background-image: url('${juliaIdle}');
-      animation: play-sprite-idle 0.8s steps(4) infinite;
-    }
-    .sprite-working {
-      width: 64px;
-      height: 64px;
-      background-image: url('${juliaWorking}');
-      animation: play-sprite-working 0.8s steps(6) infinite;
-    }
-    .sprite-coffee {
-      width: 32px;
-      height: 32px;
-      background-image: url('${juliaCoffee}');
-      animation: play-sprite-coffee 0.9s steps(3) infinite;
-    }
-  `}</style>
-);
+const CHARACTER_MAP: Record<AgentRole, string> = {
+  orchestrator: boss,
+  backend: worker1,
+  frontend: worker2,
+  qa: worker4,
+};
 
-function AgentSprite({ role, state }: { role: AgentRole; state: AgentState }) {
-  let spriteClass = 'sprite-idle';
-  let is64 = false;
-
-  if (state === 'working' || state === 'communicating' || state === 'success') {
-    spriteClass = 'sprite-working';
-    is64 = true;
-  } else if (state === 'waiting') {
-    spriteClass = 'sprite-coffee';
-  }
-
-  const scale = is64 ? 1 : 2;
-  const size = is64 ? 64 : 32;
-  const xOffset = -(size * scale) / 2;
-  const yOffset = -(size * scale) / 2;
+function AgentCharacter({ role, state }: { role: AgentRole; state: AgentState }) {
+  const isWorking = state === 'working' || state === 'communicating';
+  const imgUrl = CHARACTER_MAP[role] || worker1;
 
   return (
-    <motion.g className={`agent-sprite agent-${role}`} initial={false}>
-      <circle cx={0} cy={20} r={14} fill={ROLE_COLORS[role]} opacity={0.3} filter="blur(4px)" />
+    <motion.g 
+      className={`agent-character agent-${role}`} 
+      initial={false}
+      animate={{
+        y: isWorking ? [0, -4, 0] : 0,
+      }}
+      transition={{
+        duration: isWorking ? 0.3 : 1,
+        repeat: isWorking ? Infinity : 0,
+        ease: "easeInOut"
+      }}
+    >
+      <circle cx={32} cy={64} r={14} fill={ROLE_COLORS[role]} opacity={0.3} filter="blur(4px)" />
 
-      <foreignObject x={xOffset} y={yOffset} width={size * scale} height={size * scale} style={{ pointerEvents: 'none' }}>
-        <div 
-          className={`pixelSprite ${spriteClass}`} 
-          style={{ 
-            transform: `scale(${scale})`, 
+      <foreignObject x={0} y={0} width={64} height={64} style={{ pointerEvents: 'none' }}>
+        <div style={{
+            width: '32px', height: '32px', 
+            backgroundImage: `url(${imgUrl})`,
+            backgroundPosition: 'left top',
+            backgroundRepeat: 'no-repeat',
+            transform: 'scale(2)',
             transformOrigin: 'top left',
+            imageRendering: 'pixelated',
             opacity: state === 'error' || state === 'blocked' ? 0.7 : 1
           }} 
         />
       </foreignObject>
 
       {state === 'success' && (
-        <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-          <circle cx="20" cy="20" r="10" fill="#22c55e" />
-          <path d="M 15 20 L 19 24 L 25 16" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} transform="translate(32, -10)">
+          <circle cx="16" cy="16" r="10" fill="#22c55e" />
+          <path d="M 11 16 L 15 20 L 21 12" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </motion.g>
       )}
       {state === 'error' && (
-        <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-          <circle cx="20" cy="20" r="10" fill="#ef4444" />
-          <line x1="16" y1="16" x2="24" y2="24" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1="24" y1="16" x2="16" y2="24" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+        <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} transform="translate(32, -10)">
+          <circle cx="16" cy="16" r="10" fill="#ef4444" />
+          <line x1="12" y1="12" x2="20" y2="20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="20" y1="12" x2="12" y2="20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
         </motion.g>
       )}
       {state === 'thinking' && (
@@ -100,10 +74,11 @@ function AgentSprite({ role, state }: { role: AgentRole; state: AgentState }) {
           initial={{ opacity: 0, y: 5 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ duration: 0.3, repeat: Infinity, repeatType: 'reverse' }}
+          transform="translate(32, -5)"
         >
-          <circle cx="16" cy="-20" r="2.5" fill="var(--color-muted-foreground)" />
-          <circle cx="24" cy="-26" r="3.5" fill="var(--color-muted-foreground)" />
-          <circle cx="34" cy="-30" r="5" fill="var(--color-muted-foreground)" />
+          <circle cx="0" cy="0" r="2.5" fill="var(--color-muted-foreground)" />
+          <circle cx="8" cy="-6" r="3.5" fill="var(--color-muted-foreground)" />
+          <circle cx="18" cy="-10" r="5" fill="var(--color-muted-foreground)" />
         </motion.g>
       )}
       {state === 'communicating' && (
@@ -111,16 +86,17 @@ function AgentSprite({ role, state }: { role: AgentRole; state: AgentState }) {
           initial={{ opacity: 0.5 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2, repeat: Infinity, repeatType: 'reverse' }}
+          transform="translate(32, -5)"
         >
-          <circle cx="20" cy="-22" r="3" fill="var(--color-primary)" />
-          <circle cx="28" cy="-26" r="4" fill="var(--color-primary)" />
-          <circle cx="38" cy="-28" r="5" fill="var(--color-primary)" />
+          <circle cx="4" cy="-2" r="3" fill="var(--color-primary)" />
+          <circle cx="12" cy="-6" r="4" fill="var(--color-primary)" />
+          <circle cx="22" cy="-8" r="5" fill="var(--color-primary)" />
         </motion.g>
       )}
       {state === 'blocked' && (
-        <g>
-          <rect x="-18" y="-36" width="36" height="10" rx="2" fill="var(--color-destructive)" />
-          <text x="0" y="-28" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">BLOCKED</text>
+        <g transform="translate(32, -15)">
+          <rect x="-18" y="-10" width="36" height="10" rx="2" fill="var(--color-destructive)" />
+          <text x="0" y="-2" textAnchor="middle" fontSize="8" fill="white" fontWeight="bold">BLOCKED</text>
         </g>
       )}
     </motion.g>
@@ -138,6 +114,7 @@ function ProgressRing({ progress }: { progress: number }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
+      transform="translate(32, 32)"
     >
       <circle cx="0" cy="0" r={radius} fill="none" stroke="var(--color-border)" strokeWidth="2" />
       <motion.circle
@@ -152,7 +129,7 @@ function ProgressRing({ progress }: { progress: number }) {
         transition={{ duration: 0.5, ease: "easeInOut" }}
         transform="rotate(-90)"
       />
-      <text textAnchor="middle" dy="-40" fontSize="10" fontWeight="bold" fill="var(--color-primary)">
+      <text textAnchor="middle" dy="46" fontSize="10" fontWeight="bold" fill="var(--color-primary)">
         {Math.round(progress * 100)}%
       </text>
     </motion.g>
@@ -175,13 +152,12 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
         duration: 0.3,
         x: isRateLimited ? { duration: 0.6, repeat: 2, ease: "easeInOut" } : undefined,
       }}
+      transform="translate(-32, -48)"
     >
-      <PixelAnimations />
-
       {isBlocked && (
         <motion.circle
-          cx="0"
-          cy="0"
+          cx="32"
+          cy="32"
           r="36"
           fill="none"
           stroke="var(--color-destructive)"
@@ -192,15 +168,15 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
         />
       )}
 
-      <AgentSprite role={agent.role} state={agent.state} />
+      <AgentCharacter role={agent.role} state={agent.state} />
 
       {agent.state === 'working' && agent.progress != null && <ProgressRing progress={agent.progress} />}
 
       <motion.text
         className="agent-name"
-        x="0"
+        x="32"
         textAnchor="middle"
-        y={48}
+        y={80}
         fontSize="12"
         fontWeight="bold"
         fill="var(--color-foreground)"
@@ -218,9 +194,9 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
       {agent.task && (
         <text
           className="agent-task"
-          x="0"
+          x="32"
           textAnchor="middle"
-          y={62}
+          y={94}
           fontSize="9"
           fill="var(--color-muted-foreground)"
           fontWeight="500"
@@ -235,9 +211,9 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
 
       <text
         className="agent-state"
-        x="0"
+        x="32"
         textAnchor="middle"
-        y={74}
+        y={106}
         fontSize="10"
         fontWeight="bold"
         fill={agent.state === 'error' ? 'var(--color-destructive)' : 'var(--color-muted-foreground)'}
@@ -253,3 +229,4 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
     </motion.g>
   );
 };
+
