@@ -32,6 +32,10 @@ services:
       LLM_API_KEY: ${LLM_API_KEY}
       LLM_API_URL: ${LLM_API_URL}
       LLM_MODEL_ID: ${LLM_MODEL_ID}
+      JIRA_URL: ${JIRA_URL}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN}
+      JIRA_EMAIL: ${JIRA_EMAIL}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
     volumes:
       - ./backend:/app
     depends_on:

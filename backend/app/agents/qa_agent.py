@@ -28,9 +28,16 @@ Workspace root: /Users/tenonde/Projects/personal/multi-agent-strands"""
 
 def create_qa_agent(model: OpenAIModel | None = None) -> Agent:
     if model is None:
-        client = OpenAIModelProvider.get_client()
-        model_name = os.getenv("LLM_MODEL_ID", "minimax/minimax-m2.7")
-        model = OpenAIModel(client=client, model_id=model_name)
+        model_name = os.getenv("LLM_MODEL_ID", "qwen/qwen3.6-plus-preview:free")
+        model = OpenAIModel(
+            model_id=model_name,
+            client_args={
+                "api_key": os.getenv("LLM_API_KEY"),
+                "base_url": os.getenv("LLM_API_URL", "https://openrouter.ai/api/v1"),
+                "timeout": 300.0,
+                "max_retries": 3,
+            },
+        )
     return Agent(
         system_prompt=QA_AGENT_SYSTEM_PROMPT,
         tools=strands_tools,
@@ -44,9 +51,9 @@ class OpenAIModelProvider:
     @classmethod
     def get_client(cls) -> Any:
         if cls._client is None:
-            from openai import OpenAI
+            from openai import AsyncOpenAI
 
-            cls._client = OpenAI(
+            cls._client = AsyncOpenAI(
                 api_key=os.getenv("LLM_API_KEY"),
                 base_url=os.getenv("LLM_API_URL", "https://api.minimax.chat/v1"),
             )

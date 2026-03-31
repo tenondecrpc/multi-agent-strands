@@ -45,7 +45,7 @@ class JiraRestClient:
         if data:
             req.data = json.dumps(data).encode()
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _fetch():
             with urllib.request.urlopen(req) as response:

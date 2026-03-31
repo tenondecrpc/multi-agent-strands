@@ -56,19 +56,16 @@ Always maintain accurate ticket status in Jira to keep the team informed.""".for
 def create_model(
     ticket_id: str | None = None, session_id: str | None = None
 ) -> OpenAIModel:
-    from openai import OpenAI
-    from app.utils.http_client import create_http_client
-
-    http_client = create_http_client(ticket_id=ticket_id, session_id=session_id)
-
-    client = OpenAI(
-        api_key=os.getenv("LLM_API_KEY"),
-        base_url=os.getenv("LLM_API_URL", "https://api.minimax.chat/v1"),
-        http_client=http_client,
-        max_retries=0,
+    model_name = os.getenv("LLM_MODEL_ID", "qwen/qwen3.6-plus-preview:free")
+    return OpenAIModel(
+        model_id=model_name,
+        client_args={
+            "api_key": os.getenv("LLM_API_KEY"),
+            "base_url": os.getenv("LLM_API_URL", "https://openrouter.ai/api/v1"),
+            "timeout": 300.0,
+            "max_retries": 3,
+        },
     )
-    model_name = os.getenv("LLM_MODEL_ID", "minimax/minimax-m2.7")
-    return OpenAIModel(client=client, model_id=model_name)
 
 
 async def create_orchestrator_agent(

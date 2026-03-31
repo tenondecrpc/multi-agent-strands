@@ -273,10 +273,83 @@ async def launch_agent_pipeline(
             ticket_id=ticket_id, session_id=session_id_str
         )
 
+        prompt = f"Process Jira ticket {ticket_id}. Get the issue details, understand the requirements, and coordinate the development pipeline."
+
+        async def _run_with_streaming():
+            result_text = []
+            async for event in agent.stream_async(prompt):
+                logger.debug(f"Stream event type: {type(event)}, value: {event}")
+
+                if isinstance(event, dict):
+                    event_type = event.get("type", "")
+                    content = event.get("content", "")
+
+                    if event_type == "tool_use":
+                        tool_name = event.get("name", "unknown")
+                        await create_event(
+                            session.id,
+                            "orchestrator",
+                            EventType.TOOL_CALL,
+                            {"tool_name": tool_name, "status": "started"},
+                        )
+                        await emit_agent_event(
+                            session_id_str,
+                            "orchestrator",
+                            "agent_log",
+                            {
+                                "message": f"Tool call started: {tool_name}",
+                                "level": "info",
+                                "progress": 0.2,
+                            },
+                        )
+                    elif event_type == "tool_result":
+                        await create_event(
+                            session.id,
+                            "orchestrator",
+                            EventType.TOOL_CALL,
+                            {"tool_name": str(content)[:100], "status": "completed"},
+                        )
+                        await emit_agent_event(
+                            session_id_str,
+                            "orchestrator",
+                            "agent_log",
+                            {
+                                "message": f"Tool call completed: {str(content)[:100]}",
+                                "level": "info",
+                                "progress": 0.5,
+                            },
+                        )
+                    elif event_type in ("text", "content"):
+                        result_text.append(str(content))
+                    elif event_type == "error":
+                        logger.warning(f"Stream event error: {content}")
+                    else:
+                        result_text.append(str(event))
+                else:
+                    event_str = str(event)
+                    if hasattr(event, "__dict__"):
+                        event_type_name = type(event).__name__
+                        logger.debug(f"Event attributes: {event.__dict__}")
+                        if (
+                            "tool_use" in event_str.lower()
+                            or "ToolUse" in event_type_name
+                        ):
+                            await emit_agent_event(
+                                session_id_str,
+                                "orchestrator",
+                                "agent_log",
+                                {
+                                    "message": f"Executing: {event_type_name}",
+                                    "level": "info",
+                                    "progress": 0.2,
+                                },
+                            )
+                    result_text.append(event_str)
+
+            return "".join(result_text) if result_text else "No result"
+
         result = await asyncio.wait_for(
-            agent(
-                f"Process Jira ticket {ticket_id}. Get the issue details, understand the requirements, and coordinate the development pipeline."
-            ),
+            _run_with_streaming(),
             timeout=guardrails.timeout_seconds,
         )
 

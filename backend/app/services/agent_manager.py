@@ -163,8 +163,8 @@ class AgentManager:
         agent = self._get_agent_instance(context.agent_type)
 
         try:
-            async for token in agent.execute_streaming(task):
-                yield {"type": "token", "content": token, "session_id": session_id}
+            async for event in agent.stream_async(task):
+                yield {"type": "token", "content": event, "session_id": session_id}
 
             await (event_bus or self._event_bus).publish_ticket_event(
                 event_type=EventType.AGENT_COMPLETED,

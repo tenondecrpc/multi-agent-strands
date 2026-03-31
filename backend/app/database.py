@@ -11,7 +11,14 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql+asyncpg://agent:agent_local@db:5432/multi_agent"
 )
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=20,
+    max_overflow=30,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+)
 async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

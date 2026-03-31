@@ -34,29 +34,24 @@ def create_http_client(
     def get_pending_emits() -> list[dict]:
         return _pending_emits.pop() if _pending_emits else []
 
-    def flush_pending():
+    async def flush_pending():
         while _pending_emits:
             emit_data = _pending_emits.pop(0)
             try:
-                import asyncio
                 from app.events import emit_llm_rate_limited
 
-                loop = asyncio.new_event_loop()
-                try:
-                    loop.run_until_complete(emit_llm_rate_limited(**emit_data))
-                finally:
-                    loop.close()
+                await emit_llm_rate_limited(**emit_data)
             except Exception as e:
                 logger.debug(f"Could not emit rate limit event: {e}")
 
-    client = httpx.Client(event_hooks={"response": [on_response]})
+    client = httpx.AsyncClient(event_hooks={"response": [on_response]})
 
-    original_close = client.close
+    original_aclose = client.aclose
 
-    def close_with_flush():
-        flush_pending()
-        original_close()
+    async def aclose_with_flush():
+        await flush_pending()
+        await original_aclose()
 
-    client.close = close_with_flush
+    client.aclose = aclose_with_flush
 
     return client
