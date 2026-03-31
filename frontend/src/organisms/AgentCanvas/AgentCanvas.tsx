@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AgentFigure } from "@/components/AgentFigure";
+import { AgentFigure } from "./AgentFigure";
 import type { Agent } from "@/types/agent";
 import { cn } from "@/lib/utils";
 

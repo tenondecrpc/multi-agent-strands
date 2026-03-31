@@ -1,4 +1,4 @@
-import type { Agent, AgentRole, AgentState } from '../types/agent';
+import type { Agent, AgentRole, AgentState } from "@/types/agent";
 
 interface AgentFigureProps {
   agent: Agent;
