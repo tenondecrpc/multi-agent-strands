@@ -35,6 +35,14 @@ const DEFAULT_AGENTS: Agent[] = [
   { id: "qa_agent", name: "QA Agent", role: "qa", state: "idle" },
 ];
 
+const AGENT_ID_TO_ROLE: Record<string, Agent["role"]> = {
+  architect: "architect",
+  backend_agent: "backend",
+  frontend_agent: "frontend",
+  qa_agent: "qa",
+  orchestrator: "architect",
+};
+
 export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
   const setAgentStates = useSessionStore((state) => state.setAgentStates);
   const updateAgent = useSessionStore((state) => state.updateAgent);
@@ -165,9 +173,12 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
         if (!agentId) return;
 
         const existingAgent = DEFAULT_AGENTS.find((a) => a.id === agentId);
+        const mappedRole = AGENT_ID_TO_ROLE[agentId] || (agentId as Agent["role"]);
+        
         if (existingAgent) {
           updateAgent({
             ...existingAgent,
+            role: mappedRole,
             state: payload.new_state || payload.state,
             task: payload.task || existingAgent.task,
             progress: payload.progress ?? existingAgent.progress,
@@ -176,7 +187,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
           updateAgent({
             id: agentId,
             name: agentId.charAt(0).toUpperCase() + agentId.slice(1),
-            role: agentId as Agent["role"],
+            role: mappedRole,
             state: payload.new_state || payload.state || "working",
             task: payload.task,
             progress: payload.progress ?? 0.5,

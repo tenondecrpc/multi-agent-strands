@@ -252,6 +252,10 @@ async def launch_agent_pipeline(
 
         prompt = f"Process Jira ticket {ticket_id}. Get the issue details, understand the requirements, and coordinate the development pipeline."
 
+        SUB_AGENT_TOOLS = {"backend_agent", "frontend_agent", "qa_agent"}
+
+        SUB_AGENT_TOOLS = {"backend_agent", "frontend_agent", "qa_agent"}
+
         async def _run_with_streaming():
             result_text = []
             pending_tools: set[str] = set()
@@ -278,6 +282,20 @@ async def launch_agent_pipeline(
                         "progress": 0.5,
                     },
                 )
+                if tool_name in SUB_AGENT_TOOLS:
+                    await emit_agent_event(
+                        session_id_str,
+                        tool_name,
+                        "agent_state_change",
+                        {"new_state": "success", "progress": 1},
+                    )
+                if tool_name in SUB_AGENT_TOOLS:
+                    await emit_agent_event(
+                        session_id_str,
+                        tool_name,
+                        "agent_state_change",
+                        {"new_state": "success", "progress": 1},
+                    )
 
             async for event in agent.stream_async(prompt):
                 logger.debug(
@@ -316,6 +334,13 @@ async def launch_agent_pipeline(
                                 "progress": 0.2,
                             },
                         )
+                        if tool_name in SUB_AGENT_TOOLS:
+                            await emit_agent_event(
+                                session_id_str,
+                                tool_name,
+                                "agent_state_change",
+                                {"new_state": "working", "progress": 0.1},
+                            )
 
                 elif "text" in event:
                     text = event.get("text", "")
