@@ -1,6 +1,6 @@
-export type AgentRole = 'orchestrator' | 'backend' | 'frontend' | 'qa' | 'architect';
+export type AgentRole = 'orchestrator' | 'backend' | 'frontend' | 'qa';
 
-export type AgentState = 'idle' | 'thinking' | 'working' | 'waiting' | 'success' | 'error';
+export type AgentState = 'idle' | 'thinking' | 'working' | 'waiting' | 'success' | 'error' | 'communicating' | 'blocked';
 
 export type EventType =
   | 'pipeline_started'
@@ -36,6 +36,9 @@ export interface Agent {
   state: AgentState;
   task?: string;
   progress?: number;
+  current_file?: string;
+  current_branch?: string;
+  tokens_used?: number;
 }
 
 export interface AgentEvent {

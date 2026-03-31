@@ -2,7 +2,7 @@ import { Badge } from "@/atoms/Badge";
 import { cn } from "@/lib/utils";
 
 export interface StatusBadgeProps {
-  status: "idle" | "thinking" | "working" | "waiting" | "success" | "error";
+  status: "idle" | "thinking" | "working" | "waiting" | "success" | "error" | "communicating" | "blocked";
   className?: string;
 }
 
@@ -13,6 +13,8 @@ const statusConfig = {
   waiting: { variant: "secondary" as const, label: "Waiting" },
   success: { variant: "success" as const, label: "Success" },
   error: { variant: "destructive" as const, label: "Error" },
+  communicating: { variant: "default" as const, label: "Communicating" },
+  blocked: { variant: "destructive" as const, label: "Blocked" },
 };
 
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {

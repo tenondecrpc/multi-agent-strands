@@ -96,12 +96,6 @@ AGENT_CONFIGS: dict[AgentType, AgentConfig] = {
         system_prompt="You are a QA agent specialized in testing and quality assurance.",
         tools=["file_read", "shell"],
     ),
-    AgentType.ARCHITECT: AgentConfig(
-        name="Architect Agent",
-        model="default",
-        system_prompt="You are an architect agent specialized in system design and technical decisions.",
-        tools=["file_read", "file_write"],
-    ),
     AgentType.ORCHESTRATOR: AgentConfig(
         name="Orchestrator Agent",
         model="default",
@@ -245,7 +239,6 @@ class AgentManager:
             AgentType.BACKEND: create_backend_agent,
             AgentType.FRONTEND: create_frontend_agent,
             AgentType.QA: create_qa_agent,
-            AgentType.ARCHITECT: create_orchestrator_agent,
             AgentType.ORCHESTRATOR: create_orchestrator_agent,
         }
         agent_factory = agent_factories.get(agent_type, create_orchestrator_agent)

@@ -36,12 +36,12 @@ export const SessionLayout = ({
   const { theme, toggleTheme } = useUIStore();
 
   return (
-    <div className={cn("flex min-h-screen flex-col space-y-4 p-6 bg-background text-foreground", className)}>
-      <div className="flex shrink-0 items-center justify-between">
+    <div className={cn("flex h-screen flex-col bg-background text-foreground overflow-hidden", className)}>
+      <div className="flex shrink-0 items-center justify-between px-6 py-3 border-b">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">Session {sessionId}</h2>
+          <h2 className="text-xl font-bold">Session {sessionId}</h2>
           {ticketId && (
-            <Badge variant="secondary" className="font-mono">
+            <Badge variant="secondary" className="font-mono text-xs">
               {ticketId}
             </Badge>
           )}
@@ -54,18 +54,18 @@ export const SessionLayout = ({
         </div>
       </div>
       {error && (
-        <div className="shrink-0 rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+        <div className="shrink-0 mx-6 mt-3 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
           <p className="text-sm font-medium text-red-800 dark:text-red-200">Session Failed</p>
           <p className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
         </div>
       )}
-      <div className="grid flex-1 min-h-0 grid-cols-3 gap-4">
+      <div className="grid flex-1 min-h-0 grid-cols-3 gap-4 p-4">
         <div className="col-span-2 relative h-full">
           <AgentCanvas agents={agents} ticketId={ticketId} className="absolute inset-0" />
         </div>
-        <div className="flex h-full flex-col gap-4">
-          <TaskPanel ticketId={ticketId} agents={agents} className="shrink-0 max-h-[50%] overflow-y-auto" />
-          <LogPanel logs={logs} className="flex-1 min-h-0" />
+        <div className="flex h-full flex-col gap-3 min-h-0">
+          <TaskPanel ticketId={ticketId} agents={agents} className="shrink-0 h-[35%] overflow-y-auto" />
+          <LogPanel logs={logs} className="flex-1 min-h-0 overflow-hidden" />
         </div>
       </div>
       {children}

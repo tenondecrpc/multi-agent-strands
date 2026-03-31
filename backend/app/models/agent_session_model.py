@@ -18,7 +18,6 @@ class AgentType(str, Enum):
     BACKEND = "backend"
     FRONTEND = "frontend"
     QA = "qa"
-    ARCHITECT = "architect"
 
 
 class AgentSessionStatus(str, Enum):

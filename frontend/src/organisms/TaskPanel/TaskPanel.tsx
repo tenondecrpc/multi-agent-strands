@@ -17,6 +17,8 @@ const STATE_COLORS: Record<string, string> = {
   waiting: "var(--color-muted)",
   success: "var(--color-primary)",
   error: "var(--color-destructive)",
+  communicating: "var(--color-primary)",
+  blocked: "var(--color-destructive)",
 };
 
 const STATE_ICONS: Record<string, string> = {
@@ -26,6 +28,8 @@ const STATE_ICONS: Record<string, string> = {
   waiting: "⧖",
   success: "✓",
   error: "✗",
+  communicating: "⟷",
+  blocked: "⛔",
 };
 
 export const TaskPanel = ({ ticketId, agents, className }: TaskPanelProps) => {
