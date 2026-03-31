@@ -11,7 +11,9 @@ export type EventType =
   | 'task_assigned'
   | 'task_completed'
   | 'pr_created'
-  | 'budget_exceeded';
+  | 'budget_exceeded'
+  | 'llm_credit_exhausted'
+  | 'llm_rate_limited';
 
 export interface Agent {
   id: string;
@@ -55,6 +57,19 @@ export interface PipelinePayload {
 
 export interface ErrorPayload {
   error: string;
+}
+
+export interface LlmCreditExhaustedPayload {
+  error: string;
+  agent_type?: string;
+  timestamp: string;
+}
+
+export interface LlmRateLimitedPayload {
+  error: string;
+  agent_type?: string;
+  retry_count: number;
+  timestamp: string;
 }
 
 export interface SessionState {

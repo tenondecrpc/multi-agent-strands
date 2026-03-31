@@ -12,6 +12,8 @@ from app.core.logging import get_logger
 from app.core.event_bus import EventBus
 from app.models.agent_session_model import AgentType
 from app.models.events import EventType
+from app.utils.llm_errors import is_llm_credit_error, classify_llm_error
+from app.events import emit_llm_credit_exhausted, emit_llm_rate_limited
 
 logger = get_logger(__name__)
 
@@ -171,14 +173,72 @@ class AgentManager:
                 payload={"task": task},
             )
         except Exception as e:
-            logger.error(f"Agent execution failed for session {session_id}: {e}")
-            await (event_bus or self._event_bus).publish_ticket_event(
-                event_type=EventType.AGENT_FAILED,
-                ticket_id=context.ticket_id,
-                agent_id=session_id,
-                payload={"task": task, "error": str(e)},
+            error_msg = str(e)
+            error_type = classify_llm_error(error_msg)
+            logger.error(
+                f"Agent execution failed for session {session_id}: {error_msg} (type: {error_type})"
             )
-            yield {"type": "error", "content": str(e), "session_id": session_id}
+
+            if is_llm_credit_error(error_msg):
+                logger.critical(
+                    f"LLM credit exhausted for session {session_id}, ticket {context.ticket_id}"
+                )
+                await (event_bus or self._event_bus).publish_ticket_event(
+                    event_type=EventType.LLM_CREDIT_EXHAUSTED,
+                    ticket_id=context.ticket_id,
+                    agent_id=session_id,
+                    payload={
+                        "error": error_msg,
+                        "error_type": error_type,
+                        "agent_type": context.agent_type.value,
+                        "task": task,
+                    },
+                )
+                await emit_llm_credit_exhausted(
+                    session_id=session_id,
+                    ticket_id=context.ticket_id,
+                    error=error_msg,
+                    agent_type=context.agent_type.value,
+                )
+            elif error_type == "rate_limited":
+                logger.warning(
+                    f"LLM rate limited for session {session_id}, ticket {context.ticket_id}"
+                )
+                await (event_bus or self._event_bus).publish_ticket_event(
+                    event_type=EventType.LLM_RATE_LIMITED,
+                    ticket_id=context.ticket_id,
+                    agent_id=session_id,
+                    payload={
+                        "error": error_msg,
+                        "error_type": error_type,
+                        "agent_type": context.agent_type.value,
+                        "task": task,
+                    },
+                )
+                await emit_llm_rate_limited(
+                    session_id=session_id,
+                    ticket_id=context.ticket_id,
+                    error=error_msg,
+                    agent_type=context.agent_type.value,
+                )
+            else:
+                await (event_bus or self._event_bus).publish_ticket_event(
+                    event_type=EventType.AGENT_FAILED,
+                    ticket_id=context.ticket_id,
+                    agent_id=session_id,
+                    payload={
+                        "task": task,
+                        "error": error_msg,
+                        "error_type": error_type,
+                    },
+                )
+
+            yield {
+                "type": "error",
+                "content": error_msg,
+                "session_id": session_id,
+                "error_type": error_type,
+            }
 
     def _get_agent_instance(self, agent_type: AgentType):
         agent_factories = {

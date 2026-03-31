@@ -30,6 +30,8 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      MINIMAX_API_URL: ${MINIMAX_API_URL}
+      OPENAI_MODEL: ${OPENAI_MODEL}
     volumes:
       - ./backend:/app
     depends_on:

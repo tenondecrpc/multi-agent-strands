@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { AgentEvent, SessionState } from '../types/agent';
+import type { AgentEvent, LlmCreditExhaustedPayload, LlmRateLimitedPayload, SessionState } from '../types/agent';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8000';
 const NAMESPACE = '/pipeline';
@@ -12,6 +12,8 @@ interface ServerToClientEvents {
   pipeline_error: (data: { session_id: string; ticket_id: string; error: string }) => void;
   agent_event: (event: AgentEvent) => void;
   state_sync: (state: SessionState) => void;
+  llm_credit_exhausted: (data: LlmCreditExhaustedPayload & { session_id: string; ticket_id: string }) => void;
+  llm_rate_limited: (data: LlmRateLimitedPayload & { session_id: string; ticket_id: string }) => void;
 }
 
 interface ClientToServerEvents {
@@ -65,4 +67,28 @@ export function joinSession(sessionId: string): void {
 export function leaveSession(sessionId: string): void {
   console.log('[Socket] leaveSession:', sessionId);
   socket.emit('leave_session', { session_id: sessionId });
+}
+
+export function onLlmCreditExhausted(
+  callback: (data: { session_id: string; ticket_id: string; error: string; agent_type?: string; timestamp: string }) => void,
+): void {
+  socket.on('llm_credit_exhausted', callback);
+}
+
+export function offLlmCreditExhausted(
+  callback?: (data: { session_id: string; ticket_id: string; error: string; agent_type?: string; timestamp: string }) => void,
+): void {
+  socket.off('llm_credit_exhausted', callback);
+}
+
+export function onLlmRateLimited(
+  callback: (data: { session_id: string; ticket_id: string; error: string; agent_type?: string; retry_count: number; timestamp: string }) => void,
+): void {
+  socket.on('llm_rate_limited', callback);
+}
+
+export function offLlmRateLimited(
+  callback?: (data: { session_id: string; ticket_id: string; error: string; agent_type?: string; retry_count: number; timestamp: string }) => void,
+): void {
+  socket.off('llm_rate_limited', callback);
 }

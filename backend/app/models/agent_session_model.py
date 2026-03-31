@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional, TYPE_CHECKING
 
@@ -47,7 +47,9 @@ class AgentSession(Base):
     result: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
     completed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

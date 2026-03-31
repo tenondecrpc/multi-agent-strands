@@ -20,6 +20,8 @@ class EventType(str, Enum):
     TOOL_CALL = "tool_call"
     STATE_CHANGE = "state_change"
     LOG = "log"
+    LLM_CREDIT_EXHAUSTED = "llm_credit_exhausted"
+    LLM_RATE_LIMITED = "llm_rate_limited"
 
 
 class AgentEvent(Base):

@@ -85,6 +85,7 @@ async def list_sessions(db: AsyncSession = Depends(get_db)):
                     status=session.status.value,
                     started_at=session.started_at,
                     agents=_get_default_agents(),
+                    error=session.error,
                 )
             )
 
@@ -116,6 +117,7 @@ async def get_session(session_id: str, db: AsyncSession = Depends(get_db)):
         agents=_get_default_agents(),
         logs=logs,
         metrics=SessionMetrics(),
+        error=session.error,
     )
 
 

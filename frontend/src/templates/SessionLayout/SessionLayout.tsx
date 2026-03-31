@@ -14,6 +14,7 @@ interface SessionLayoutProps {
   logs: AgentLog[];
   metrics: SessionMetrics;
   isConnected: boolean;
+  error?: string;
   children?: ReactNode;
   className?: string;
 }
@@ -25,6 +26,7 @@ export const SessionLayout = ({
   logs,
   metrics,
   isConnected,
+  error,
   children,
   className,
 }: SessionLayoutProps) => {
@@ -41,6 +43,12 @@ export const SessionLayout = ({
         </div>
         <MetricsBar metrics={metrics} isConnected={isConnected} />
       </div>
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+          <p className="text-sm font-medium text-red-800 dark:text-red-200">Session Failed</p>
+          <p className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
           <AgentCanvas agents={agents} ticketId={ticketId} />

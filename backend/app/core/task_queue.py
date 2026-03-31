@@ -229,14 +229,15 @@ def _execute_ticket_processing(task_data: TicketProcessingTask) -> dict[str, Any
             "result": result,
         }
     except Exception as e:
-        logger.exception(f"Pipeline failed for {task_data.ticket_id}: {e}")
+        error_msg = f"Pipeline failed for {task_data.ticket_id}: {e}"
+        logger.exception(error_msg)
         with SyncSession() as db:
             from sqlalchemy import update
 
             stmt = (
                 update(AgentSession)
                 .where(AgentSession.id == session_uuid)
-                .values(status=AgentSessionStatus.FAILED)
+                .values(status=AgentSessionStatus.FAILED, error=str(e)[:1000])
             )
             db.execute(stmt)
             db.commit()

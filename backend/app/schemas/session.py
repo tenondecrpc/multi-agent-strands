@@ -33,6 +33,7 @@ class SessionResponse(BaseModel):
     agents: list[SessionAgent]
     logs: list[AgentLog] = []
     metrics: SessionMetrics = SessionMetrics()
+    error: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -6,6 +6,7 @@ import os
 import app.config  # noqa: F401 - ensures .env is loaded
 
 from strands import Agent
+from strands.event_loop._retry import ModelRetryStrategy
 from strands.models import OpenAIModel
 
 from app.agents.jira_tools import get_jira_tools
@@ -52,22 +53,30 @@ Always maintain accurate ticket status in Jira to keep the team informed.""".for
 )
 
 
-def create_model() -> OpenAIModel:
+def create_model(
+    ticket_id: str | None = None, session_id: str | None = None
+) -> OpenAIModel:
     from openai import OpenAI
+    from app.utils.http_client import create_http_client
+
+    http_client = create_http_client(ticket_id=ticket_id, session_id=session_id)
 
     client = OpenAI(
         api_key=os.getenv("MINIMAX_API_KEY"),
         base_url=os.getenv("MINIMAX_API_URL", "https://api.minimax.chat/v1"),
+        http_client=http_client,
     )
     model_name = os.getenv("OPENAI_MODEL", "minimax/minimax-m2.7")
     return OpenAIModel(client=client, model_id=model_name)
 
 
-async def create_orchestrator_agent() -> Agent:
+async def create_orchestrator_agent(
+    ticket_id: str | None = None, session_id: str | None = None
+) -> Agent:
     jira_tools = get_jira_tools()
-    github_tools = []  # TODO: implement GitHub REST client
+    github_tools = []
 
-    model = create_model()
+    model = create_model(ticket_id=ticket_id, session_id=session_id)
 
     from app.agents.backend_agent import create_backend_agent
     from app.agents.frontend_agent import create_frontend_agent
@@ -91,10 +100,13 @@ async def create_orchestrator_agent() -> Agent:
 
     all_tools = jira_tools + [backend_agent_tool, frontend_agent_tool, qa_agent_tool]
 
+    retry_strategy = ModelRetryStrategy(max_attempts=2, initial_delay=2, max_delay=5)
+
     return Agent(
         system_prompt=ORCHESTRATOR_SYSTEM_PROMPT,
         tools=all_tools,
         model=model,
+        retry_strategy=retry_strategy,
     )
 
 

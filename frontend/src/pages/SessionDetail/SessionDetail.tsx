@@ -15,6 +15,7 @@ interface SessionResponse {
   agents: { id: string; name: string; role: string; state: string }[];
   logs: any[];
   metrics: any;
+  error?: string | null;
 }
 
 export const SessionDetail = () => {
@@ -81,6 +82,7 @@ export const SessionDetail = () => {
       logs={logs}
       metrics={session.metrics}
       isConnected={isConnected}
+      error={session.status === "FAILED" ? session.error || "Session failed with no error details" : undefined}
     />
   );
 };

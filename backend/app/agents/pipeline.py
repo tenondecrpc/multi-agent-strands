@@ -17,9 +17,12 @@ from app.events import (
     emit_pipeline_completed,
     emit_pipeline_error,
     emit_pipeline_started,
+    emit_llm_credit_exhausted,
+    emit_llm_rate_limited,
 )
 from app.models.agent_session_model import AgentSession, AgentSessionStatus, AgentType
 from app.models.agent_event import AgentEvent, EventType
+from app.utils.llm_errors import is_llm_credit_error, classify_llm_error
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +100,9 @@ async def create_session(ticket_id: str) -> AgentSession:
         return agent_session
 
 
-async def update_session_status(session_id: UUID, status: AgentSessionStatus) -> None:
+async def update_session_status(
+    session_id: UUID, status: AgentSessionStatus, error: str | None = None
+) -> None:
     async with async_session_maker() as session:
         from sqlalchemy import select
 
@@ -107,6 +112,8 @@ async def update_session_status(session_id: UUID, status: AgentSessionStatus) ->
         agent_session = result.scalar_one_or_none()
         if agent_session:
             agent_session.status = status
+            if error:
+                agent_session.error = error[:1000]
             await session.commit()
 
 
@@ -197,6 +204,20 @@ async def create_event(
             "agent_log",
             payload,
         )
+    elif event_type == EventType.LLM_CREDIT_EXHAUSTED:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "llm_credit_exhausted",
+            payload,
+        )
+    elif event_type == EventType.LLM_RATE_LIMITED:
+        await emit_agent_event(
+            session_id_str,
+            agent_id,
+            "llm_rate_limited",
+            payload,
+        )
 
     return event
 
@@ -217,7 +238,9 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
     guardrails.start()
 
     try:
-        agent = await create_orchestrator_agent()
+        agent = await create_orchestrator_agent(
+            ticket_id=ticket_id, session_id=session_id_str
+        )
 
         result = await asyncio.wait_for(
             agent(
@@ -249,7 +272,9 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
     except asyncio.TimeoutError:
         error_msg = f"Pipeline timed out after {guardrails.timeout_seconds} seconds"
         logger.error(error_msg)
-        await update_session_status(session.id, AgentSessionStatus.FAILED)
+        await update_session_status(
+            session.id, AgentSessionStatus.FAILED, error=error_msg
+        )
         await create_event(
             session.id, "orchestrator", EventType.AGENT_FAILED, {"error": error_msg}
         )
@@ -266,7 +291,9 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
     except RuntimeError as e:
         error_msg = str(e)
         logger.error(f"Pipeline guardrail triggered: {error_msg}")
-        await update_session_status(session.id, AgentSessionStatus.FAILED)
+        await update_session_status(
+            session.id, AgentSessionStatus.FAILED, error=error_msg
+        )
         await create_event(
             session.id, "orchestrator", EventType.AGENT_FAILED, {"error": error_msg}
         )
@@ -282,17 +309,53 @@ async def launch_agent_pipeline(ticket_id: str) -> dict[str, Any]:
 
     except Exception as e:
         error_msg = f"Pipeline error: {str(e)}"
+        error_type = classify_llm_error(str(e))
         logger.error(error_msg)
-        await update_session_status(session.id, AgentSessionStatus.FAILED)
-        await create_event(
-            session.id, "orchestrator", EventType.AGENT_FAILED, {"error": error_msg}
+        await update_session_status(
+            session.id, AgentSessionStatus.FAILED, error=error_msg
         )
 
-        await emit_pipeline_error(session_id_str, ticket_id, error_msg)
+        if is_llm_credit_error(str(e)):
+            logger.critical(f"LLM credit exhausted for ticket {ticket_id}: {error_msg}")
+            await create_event(
+                session.id,
+                "orchestrator",
+                EventType.LLM_CREDIT_EXHAUSTED,
+                {"error": error_msg, "error_type": error_type},
+            )
+            await emit_llm_credit_exhausted(
+                session_id=session_id_str,
+                ticket_id=ticket_id,
+                error=error_msg,
+                agent_type="orchestrator",
+            )
+        elif error_type == "rate_limited":
+            logger.warning(f"LLM rate limited for ticket {ticket_id}: {error_msg}")
+            await create_event(
+                session.id,
+                "orchestrator",
+                EventType.LLM_RATE_LIMITED,
+                {"error": error_msg, "error_type": error_type},
+            )
+            await emit_llm_rate_limited(
+                session_id=session_id_str,
+                ticket_id=ticket_id,
+                error=error_msg,
+                agent_type="orchestrator",
+            )
+        else:
+            await create_event(
+                session.id,
+                "orchestrator",
+                EventType.AGENT_FAILED,
+                {"error": error_msg, "error_type": error_type},
+            )
+            await emit_pipeline_error(session_id_str, ticket_id, error_msg)
 
         return {
             "ticket_id": ticket_id,
             "status": "error",
             "session_id": session_id_str,
             "error": error_msg,
+            "error_type": error_type,
         }

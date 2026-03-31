@@ -77,3 +77,49 @@ async def emit_agent_event(
         event_data,
         namespace=NAMESPACE,
     )
+
+
+async def emit_llm_credit_exhausted(
+    session_id: str,
+    ticket_id: str,
+    error: str,
+    agent_type: str | None = None,
+) -> None:
+    logger.warning(
+        f"LLM credit exhausted: session={session_id}, ticket={ticket_id}, agent_type={agent_type}"
+    )
+    await sio.emit(
+        "llm_credit_exhausted",
+        {
+            "session_id": session_id,
+            "ticket_id": ticket_id,
+            "error": error,
+            "agent_type": agent_type,
+            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+        },
+        namespace=NAMESPACE,
+    )
+
+
+async def emit_llm_rate_limited(
+    session_id: str,
+    ticket_id: str,
+    error: str,
+    agent_type: str | None = None,
+    retry_count: int = 0,
+) -> None:
+    logger.warning(
+        f"LLM rate limited: session={session_id}, ticket={ticket_id}, agent_type={agent_type}, retry={retry_count}"
+    )
+    await sio.emit(
+        "llm_rate_limited",
+        {
+            "session_id": session_id,
+            "ticket_id": ticket_id,
+            "error": error,
+            "agent_type": agent_type,
+            "retry_count": retry_count,
+            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+        },
+        namespace=NAMESPACE,
+    )
