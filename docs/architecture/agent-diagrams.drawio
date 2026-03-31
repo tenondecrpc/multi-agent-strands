@@ -1,0 +1,813 @@
+<mxfile host="app.diagrams.net" modified="2026-03-31T00:00:00.000Z" agent="opencode" version="24.0.0">
+  <diagram name="Orchestrator Agent" id="orchestrator">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Orchestrator Agent" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=28;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Manages the entire software development workflow — parses Jira tickets, coordinates agents, updates statuses" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="300" y="60" width="800" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Model / LLM Section -->
+        <mxCell id="model-box" value="LLM Model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="550" y="100" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="model-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn-icons-png.flaticon.com/512/8943/8943377.png;" vertex="1" parent="1">
+          <mxGeometry x="560" y="115" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="model-details" value="OpenAI-compatible (OpenRouter)&#xa;Model: qwen/qwen3.6-plus-preview:free&#xa;Timeout: 300s | Retries: 3" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="610" y="120" width="230" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Retry Strategy -->
+        <mxCell id="retry-box" value="Retry Strategy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="550" y="195" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="retry-details" value="ModelRetryStrategy(max_attempts=2, initial_delay=2, max_delay=5)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="560" y="210" width="280" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Guardrails -->
+        <mxCell id="guardrails-box" value="Pipeline Guardrails" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="550" y="260" width="300" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="guard-details" value="Max Tool Calls: 100&#xa;Max Token Budget: 100,000&#xa;Timeout: 600s" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="560" y="275" width="280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Jira Tools Section -->
+        <mxCell id="jira-section" value="Jira Tools (6)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="480" height="330" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jira-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn.worldvectorlogo.com/logos/jira-1.svg;" vertex="1" parent="1">
+          <mxGeometry x="55" y="115" width="45" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jira-tool-1" value="jira_get_issue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="115" y="120" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jira-tool-1-desc" value="Fetch full ticket details by key" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="275" y="120" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jira-tool-2" value="jira_enrich_ticket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="115" y="160" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jira-tool-2-desc" value="Get ticket data with comments" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="275" y="160" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jira-tool-3" value="jira_search_issues" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="115" y="200" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jira-tool-3-desc" value="Search issues with JQL queries" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="275" y="200" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jira-tool-4" value="jira_add_comment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="115" y="240" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jira-tool-4-desc" value="Add comment to a ticket" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="275" y="240" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jira-tool-5" value="jira_get_comments" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="115" y="280" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jira-tool-5-desc" value="Get comments for a ticket" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="275" y="280" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jira-tool-6" value="jira_transition_issue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="115" y="320" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jira-tool-6-desc" value="Change ticket status" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="275" y="320" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Sub-Agent Tools Section -->
+        <mxCell id="agents-section" value="Sub-Agent Tools (3)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="880" y="100" width="480" height="330" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backend-agent-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0D7377;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="900" y="120" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-agent-label" value="backend_agent" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#0D7377" vertex="1" parent="1">
+          <mxGeometry x="910" y="125" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-agent-desc" value="FastAPI endpoints, Pydantic models, SQLAlchemy models&#xa;Workspace: backend/&#xa;Tools: file_read, file_write, editor, shell, python_repl, current_time" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="910" y="150" width="420" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="frontend-agent-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#FF6B6B;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="900" y="215" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend-agent-label" value="frontend_agent" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#FF6B6B" vertex="1" parent="1">
+          <mxGeometry x="910" y="220" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend-agent-desc" value="React components, pages, TypeScript code&#xa;Workspace: frontend/src/&#xa;Tools: file_read, file_write, editor, shell, python_repl, current_time" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="910" y="245" width="420" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qa-agent-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#F0932B;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="900" y="310" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="qa-agent-label" value="qa_agent" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#F0932B" vertex="1" parent="1">
+          <mxGeometry x="910" y="315" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="qa-agent-desc" value="Write &amp; execute tests (pytest, Vitest)&#xa;Creates: backend/tests/*.py, frontend/src/*.test.tsx&#xa;Tools: file_read, file_write, editor, shell, python_repl, current_time" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="910" y="340" width="420" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Section -->
+        <mxCell id="workflow-section" value="Execution Workflow" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="1320" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-text" value="Parse Ticket&#xa;jira_get_issue()&#xa;jira_enrich_ticket()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="60" y="545" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow1-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="280" y="500" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-text" value="Delegate Work&#xa;backend_agent(task)&#xa;frontend_agent(task)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="545" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="step2" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3" value="3" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="500" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-text" value="Verify&#xa;qa_agent(task)&#xa;Check results" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="460" y="545" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="step3" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step4" value="4" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="680" y="500" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step4-text" value="Fix if Needed&#xa;Re-delegate to&#xa;dev agents" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="660" y="545" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow4-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="step4" target="step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step5" value="5" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="880" y="500" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step5-text" value="Update Jira&#xa;jira_add_comment()&#xa;jira_transition_issue()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="855" y="545" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow5-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="step5" target="step6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step6" value="6" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1080" y="500" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step6-text" value="Create PR&#xa;github_create_branch()&#xa;github_create_pull_request()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1055" y="545" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-github" value="⚠ GitHub tools not yet implemented&#xa;(placeholder in system prompt)" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="1050" y="600" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Invocation Section -->
+        <mxCell id="invocation-section" value="Invocation" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="1320" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="invocation-flow" value="HTTP POST /tickets/{id}/process&#xa;  → Celery: process_ticket_task(ticket_id)&#xa;    → pipeline.launch_agent_pipeline(ticket_id)&#xa;      → create_orchestrator_agent(ticket_id, session_id)&#xa;        → agent.stream_async(&quot;Process Jira ticket {ticket_id}...&quot;)&#xa;          → async for event in agent.stream_async(prompt):&#xa;              Track tool calls, emit events, update progress" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="60" y="710" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="event-emission" value="Event Emission (per tool call)&#xa;  → agent_state_change (working/success/error)&#xa;  → agent_log (tool call/result messages)&#xa;  → ProgressTracker (every 2s while sub-agent runs)&#xa;  → Socket.IO → Frontend (real-time updates)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="700" y="710" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Connections: Jira to Orchestrator -->
+        <mxCell id="conn-jira-orch" value="Reads tickets" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;fontSize=10;dashed=1;" edge="1" parent="1" source="jira-section" target="model-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Connections: Orchestrator to Sub-Agents -->
+        <mxCell id="conn-orch-agents" value="Delegates tasks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;fontSize=10;dashed=1;" edge="1" parent="1" source="model-box" target="agents-section">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="Backend Agent" id="backend-agent">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Backend Agent" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=28;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Implements FastAPI endpoints, Pydantic models, SQLAlchemy models, and backend tests" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="800" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Agent Header -->
+        <mxCell id="agent-header" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#0D7377;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn.worldvectorlogo.com/logos/python-5.svg;" vertex="1" parent="1">
+          <mxGeometry x="415" y="115" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-name" value="Backend Developer Agent" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#0D7377" vertex="1" parent="1">
+          <mxGeometry x="475" y="110" width="250" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-workspace" value="Workspace: /Users/tenonde/Projects/personal/multi-agent-strands/backend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="475" y="140" width="320" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Model -->
+        <mxCell id="model-box" value="LLM Model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="430" y="200" width="340" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="model-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn-icons-png.flaticon.com/512/8943/8943377.png;" vertex="1" parent="1">
+          <mxGeometry x="440" y="210" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="model-details" value="OpenAI-compatible (OpenRouter)&#xa;Model: qwen/qwen3.6-plus-preview:free | Timeout: 300s" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="485" y="210" width="275" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Tools Section -->
+        <mxCell id="tools-section" value="Available Tools (6)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="1120" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-file-read" value="file_read" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="305" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-file-read-desc" value="Read file contents from workspace" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="305" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-file-write" value="file_write" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="350" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-file-write-desc" value="Write file, creates parent dirs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="350" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-editor" value="editor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="395" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-editor-desc" value="Find &amp; replace text in file" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="395" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-shell" value="shell" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="305" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-shell-desc" value="Execute shell commands (timeout: 60s)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="305" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-python-repl" value="python_repl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="350" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-python-repl-desc" value="Execute Python code in memory" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="350" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-current-time" value="current_time" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="395" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-current-time-desc" value="Get current datetime (ISO format)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="395" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Responsibilities Section -->
+        <mxCell id="resp-section" value="Responsibilities" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="540" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="resp-1" value="Implement RESTful API endpoints with FastAPI" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="515" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-2" value="Create Pydantic models for request/response validation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="545" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-3" value="Design and implement database models with SQLAlchemy" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="575" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-4" value="Write backend tests with pytest" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="605" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-5" value="Ensure code follows best practices and documentation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="635" width="400" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Implementation Workflow -->
+        <mxCell id="workflow-section" value="Implementation Workflow" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="610" y="490" width="550" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step1" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="650" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step1-text" value="Read existing&#xa;code structure" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="635" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow1-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step1" target="wf-step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step2" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="760" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step2-text" value="Create/modify&#xa;files" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="745" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow2-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step2" target="wf-step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step3" value="3" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="870" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step3-text" value="Run tests&#xa;&amp; linting" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="855" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow3-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step3" target="wf-step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step4" value="4" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="980" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step4-text" value="Verify &amp;&#xa;report" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="965" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- File Operations -->
+        <mxCell id="files-section" value="File Operations" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="1120" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files-read-label" value="Reads:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="745" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="files-read-paths" value="backend/app/api/*.py&#xa;backend/app/models/*.py&#xa;backend/app/services/*.py&#xa;backend/app/core/*.py" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="130" y="740" width="300" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files-write-label" value="Writes:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="745" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="files-write-paths" value="backend/app/api/&lt;new_endpoint&gt;.py&#xa;backend/app/models/&lt;new_model&gt;.py&#xa;backend/tests/test_&lt;module&gt;.py" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="570" y="740" width="300" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Shell Commands -->
+        <mxCell id="shell-section" value="Common Shell Commands" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="895" width="1120" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="shell-cmds" value="cd backend &amp;&amp; pytest tests/test_&lt;name&gt;.py -v&#xa;cd backend &amp;&amp; ruff check .&#xa;cd backend &amp;&amp; ruff format .&#xa;cd backend &amp;&amp; mypy ." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="60" y="915" width="500" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Invocation -->
+        <mxCell id="invocation" value="Invocation: Called by Orchestrator via backend_agent(task: str) → invoke_async(task) → returns result string" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#666666;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="200" y="1010" width="800" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="Frontend Agent" id="frontend-agent">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Frontend Agent" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=28;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Implements React components, pages, TypeScript code, and frontend tests" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="800" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Agent Header -->
+        <mxCell id="agent-header" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#FF6B6B;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn.worldvectorlogo.com/logos/react-2.svg;" vertex="1" parent="1">
+          <mxGeometry x="415" y="115" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-name" value="Frontend Developer Agent" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#FF6B6B" vertex="1" parent="1">
+          <mxGeometry x="475" y="110" width="250" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-workspace" value="Workspace: /Users/tenonde/Projects/personal/multi-agent-strands" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="475" y="140" width="320" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Model -->
+        <mxCell id="model-box" value="LLM Model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="430" y="200" width="340" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="model-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn-icons-png.flaticon.com/512/8943/8943377.png;" vertex="1" parent="1">
+          <mxGeometry x="440" y="210" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="model-details" value="OpenAI-compatible (OpenRouter)&#xa;Model: qwen/qwen3.6-plus-preview:free | Timeout: 300s" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="485" y="210" width="275" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Tools Section -->
+        <mxCell id="tools-section" value="Available Tools (6)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="1120" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-file-read" value="file_read" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="305" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-file-read-desc" value="Read file contents from workspace" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="305" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-file-write" value="file_write" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="350" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-file-write-desc" value="Write file, creates parent dirs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="350" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-editor" value="editor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="395" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-editor-desc" value="Find &amp; replace text in file" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="395" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-shell" value="shell" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="305" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-shell-desc" value="Execute shell commands (timeout: 60s)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="305" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-python-repl" value="python_repl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="350" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-python-repl-desc" value="Execute Python code in memory" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="350" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-current-time" value="current_time" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="395" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-current-time-desc" value="Get current datetime (ISO format)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="395" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Responsibilities Section -->
+        <mxCell id="resp-section" value="Responsibilities" style="swimlane;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#FF6B6B;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="540" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="resp-1" value="Implement UI components with React and TypeScript" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="515" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-2" value="Create pages and routing with React Router" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="545" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-3" value="Integrate with backend APIs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="575" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-4" value="Write frontend tests with Vitest and React Testing Library" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="605" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-5" value="Ensure responsive and accessible design" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="635" width="400" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Implementation Workflow -->
+        <mxCell id="workflow-section" value="Implementation Workflow" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="610" y="490" width="550" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step1" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="650" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step1-text" value="Read existing&#xa;code structure" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="635" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow1-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step1" target="wf-step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step2" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="760" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step2-text" value="Create/modify&#xa;components" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="745" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow2-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step2" target="wf-step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step3" value="3" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="870" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step3-text" value="Run dev server&#xa;&amp; tests" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="855" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow3-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step3" target="wf-step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step4" value="4" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="980" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step4-text" value="Verify &amp;&#xa;report" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="965" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- File Operations -->
+        <mxCell id="files-section" value="File Operations" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="1120" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files-read-label" value="Reads:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="745" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="files-read-paths" value="frontend/src/components/*.tsx&#xa;frontend/src/pages/*.tsx&#xa;frontend/src/hooks/*.ts&#xa;frontend/src/services/*.ts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="130" y="740" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files-write-label" value="Writes:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="500" y="745" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="files-write-paths" value="frontend/src/components/&lt;Component&gt;.tsx&#xa;frontend/src/pages/&lt;Page&gt;.tsx&#xa;frontend/src/&lt;path&gt;/&lt;Component&gt;.test.tsx" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="570" y="740" width="350" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Shell Commands -->
+        <mxCell id="shell-section" value="Common Shell Commands" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="895" width="1120" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="shell-cmds" value="cd frontend &amp;&amp; npm run dev&#xa;cd frontend &amp;&amp; npm test -- &lt;test_file&gt;&#xa;cd frontend &amp;&amp; npx vitest run&#xa;cd frontend &amp;&amp; npm run build&#xa;cd frontend &amp;&amp; npm run lint" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="60" y="915" width="500" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Invocation -->
+        <mxCell id="invocation" value="Invocation: Called by Orchestrator via frontend_agent(task: str) → invoke_async(task) → returns result string" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#666666;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="200" y="1010" width="800" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="QA Agent" id="qa-agent">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="QA Agent" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=28;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Writes and executes tests for backend (pytest) and frontend (Vitest), reports failures to Orchestrator" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="150" y="60" width="900" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Agent Header -->
+        <mxCell id="agent-header" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#F0932B;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn.worldvectorlogo.com/logos/jest-1.svg;" vertex="1" parent="1">
+          <mxGeometry x="415" y="115" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-name" value="QA Agent" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#F0932B" vertex="1" parent="1">
+          <mxGeometry x="475" y="110" width="250" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-workspace" value="Workspace: /Users/tenonde/Projects/personal/multi-agent-strands" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="475" y="140" width="320" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Model -->
+        <mxCell id="model-box" value="LLM Model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="430" y="200" width="340" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="model-icon" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://cdn-icons-png.flaticon.com/512/8943/8943377.png;" vertex="1" parent="1">
+          <mxGeometry x="440" y="210" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="model-details" value="OpenAI-compatible (OpenRouter)&#xa;Model: qwen/qwen3.6-plus-preview:free | Timeout: 300s" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="485" y="210" width="275" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Tools Section -->
+        <mxCell id="tools-section" value="Available Tools (6)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="1120" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-file-read" value="file_read" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="305" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-file-read-desc" value="Read source code to understand what to test" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="305" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-file-write" value="file_write" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="350" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-file-write-desc" value="Create physical test files" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="350" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-editor" value="editor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="395" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-editor-desc" value="Modify existing test files" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="210" y="395" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-shell" value="shell" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="305" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-shell-desc" value="Run test suites (pytest, npm test)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="305" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-python-repl" value="python_repl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="350" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-python-repl-desc" value="Execute Python code in memory" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="350" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-current-time" value="current_time" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="395" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-current-time-desc" value="Get current datetime (ISO format)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="600" y="395" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Responsibilities Section -->
+        <mxCell id="resp-section" value="Responsibilities" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#F0932B;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="540" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="resp-1" value="Write backend tests with pytest (create files in backend/tests/)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="515" width="420" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-2" value="Write frontend tests with Vitest + React Testing Library" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="545" width="420" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-3" value="Run test suites and verify results" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="575" width="420" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-4" value="Report test failures with detailed error logs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="605" width="420" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="resp-5" value="Ensure code quality and test coverage" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="60" y="635" width="420" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Test Workflow -->
+        <mxCell id="workflow-section" value="Test Workflow" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="610" y="490" width="550" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step1" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="650" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step1-text" value="Read relevant&#xa;source code" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="635" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow1-2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step1" target="wf-step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step2" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="760" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step2-text" value="Create test&#xa;files" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="745" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow2-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step2" target="wf-step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step3" value="3" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="870" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step3-text" value="Run tests&#xa;(pytest/vitest)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="855" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-arrow3-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="wf-step3" target="wf-step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-step4" value="4" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="980" y="520" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-step4-text" value="Analyze &amp;&#xa;report" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="965" y="560" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- File Operations -->
+        <mxCell id="files-section" value="Test File Creation" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="1120" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files-backend-label" value="Backend Tests:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="745" width="120" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="files-backend-paths" value="backend/tests/test_&lt;module_name&gt;.py&#xa;&#xa;Run: cd backend &amp;&amp; pytest tests/test_&lt;name&gt;.py -v" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="190" y="740" width="400" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files-frontend-label" value="Frontend Tests:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="810" width="120" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="files-frontend-paths" value="frontend/src/&lt;path&gt;/&lt;ComponentName&gt;.test.tsx&#xa;&#xa;Run: cd frontend &amp;&amp; npm test -- &lt;test_file&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
+          <mxGeometry x="190" y="805" width="400" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Feedback Loop -->
+        <mxCell id="feedback-section" value="Feedback Loop" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="620" y="720" width="540" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="feedback-pass" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="650" y="750" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="feedback-pass-text" value="Tests Pass" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="660" y="755" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="feedback-pass-action" value="Return success to Orchestrator" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="660" y="780" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="feedback-fail" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="650" y="830" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="feedback-fail-text" value="Tests Fail" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="660" y="835" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="feedback-fail-action" value="Return detailed error logs&#xa;to Orchestrator → Orchestrator&#xa;coordinates fixes with&#xa;backend_agent or frontend_agent" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="660" y="860" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="feedback-note" value="⚠ Always creates physical test files&#xa;— does not just run existing tests" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="880" y="750" width="250" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Invocation -->
+        <mxCell id="invocation" value="Invocation: Called by Orchestrator via qa_agent(task: str) → invoke_async(task) → returns test results string" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#666666;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="200" y="970" width="800" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -13,6 +13,26 @@ The system consists of three main components:
 - **Backend**: FastAPI + Strands Agents SDK for orchestration and business logic
 - **Database**: PostgreSQL for persistent storage of ticket states, agent sessions, and events
 
+### Agent Architecture
+
+![Agent Diagrams](docs/architecture/agent-diagrams.png)
+
+Detailed diagrams for each agent:
+- **Orchestrator Agent**: Manages Jira integration, delegates tasks to sub-agents, coordinates workflow
+- **Backend Agent**: Implements FastAPI endpoints, Pydantic models, SQLAlchemy models
+- **Frontend Agent**: Creates React components, pages, TypeScript code
+- **QA Agent**: Writes and executes tests (pytest, Vitest), creates physical test files
+
+### Agent Architecture
+
+![Agent Diagrams](docs/architecture/agent-diagrams.png)
+
+Detailed diagrams for each agent:
+- **Orchestrator Agent**: Manages Jira integration, delegates tasks to sub-agents, coordinates workflow
+- **Backend Agent**: Implements FastAPI endpoints, Pydantic models, SQLAlchemy models
+- **Frontend Agent**: Creates React components, pages, TypeScript code
+- **QA Agent**: Writes and executes tests (pytest, Vitest), creates physical test files
+
 ## Quick Start
 
 ### Prerequisites
