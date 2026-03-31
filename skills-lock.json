@@ -5,6 +5,11 @@
       "source": "hoodini/ai-agents-skills",
       "sourceType": "github",
       "computedHash": "7ab9e9c1dd24b9f21058b1782f7bf027eb0510e3711aa8e210ac3c1563cbc479"
+    },
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "988d80e52c67c3692d43cc963b6a048a239895e88b272b061de55370d0f8efc3"
     }
   }
 }
