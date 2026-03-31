@@ -174,6 +174,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
 
         const existingAgent = DEFAULT_AGENTS.find((a) => a.id === agentId);
         const mappedRole = AGENT_ID_TO_ROLE[agentId] || (agentId as Agent["role"]);
+        console.log('[Socket] agent_state_change - existingAgent:', existingAgent, 'mappedRole:', mappedRole);
         
         if (existingAgent) {
           updateAgent({

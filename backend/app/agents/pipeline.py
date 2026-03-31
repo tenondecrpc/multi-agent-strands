@@ -57,6 +57,50 @@ class ToolCallTracker:
             )
 
 
+class ProgressTracker:
+    def __init__(
+        self, session_id_str: str, max_progress: float = 0.85, interval: float = 2.0
+    ):
+        self.session_id_str = session_id_str
+        self.max_progress = max_progress
+        self.interval = interval
+        self._tasks: dict[str, asyncio.Task] = {}
+        self._progress: dict[str, float] = {}
+
+    async def _emit_progress_loop(self, agent_id: str):
+        try:
+            while True:
+                current = self._progress.get(agent_id, 0.1)
+                if current >= self.max_progress:
+                    break
+                new_progress = min(current + 0.1, self.max_progress)
+                self._progress[agent_id] = new_progress
+                await emit_agent_event(
+                    self.session_id_str,
+                    agent_id,
+                    "agent_state_change",
+                    {"new_state": "working", "progress": new_progress},
+                )
+                await asyncio.sleep(self.interval)
+        except asyncio.CancelledError:
+            pass
+
+    def start(self, agent_id: str):
+        self._progress[agent_id] = 0.1
+        task = asyncio.create_task(self._emit_progress_loop(agent_id))
+        self._tasks[agent_id] = task
+
+    def stop(self, agent_id: str):
+        task = self._tasks.pop(agent_id, None)
+        if task and not task.done():
+            task.cancel()
+        self._progress.pop(agent_id, None)
+
+    def stop_all(self):
+        for agent_id in list(self._tasks.keys()):
+            self.stop(agent_id)
+
+
 class PipelineGuardrails:
     def __init__(
         self,
@@ -244,6 +288,7 @@ async def launch_agent_pipeline(
 
     guardrails = PipelineGuardrails()
     guardrails.start()
+    progress_tracker = ProgressTracker(session_id_str)
 
     try:
         agent = await create_orchestrator_agent(
@@ -251,8 +296,6 @@ async def launch_agent_pipeline(
         )
 
         prompt = f"Process Jira ticket {ticket_id}. Get the issue details, understand the requirements, and coordinate the development pipeline."
-
-        SUB_AGENT_TOOLS = {"backend_agent", "frontend_agent", "qa_agent"}
 
         SUB_AGENT_TOOLS = {"backend_agent", "frontend_agent", "qa_agent"}
 
@@ -266,6 +309,7 @@ async def launch_agent_pipeline(
                 if tool_name in emitted_completed:
                     return
                 emitted_completed.add(tool_name)
+                progress_tracker.stop(tool_name)
                 await create_event(
                     session.id,
                     "orchestrator",
@@ -282,13 +326,6 @@ async def launch_agent_pipeline(
                         "progress": 0.5,
                     },
                 )
-                if tool_name in SUB_AGENT_TOOLS:
-                    await emit_agent_event(
-                        session_id_str,
-                        tool_name,
-                        "agent_state_change",
-                        {"new_state": "success", "progress": 1},
-                    )
                 if tool_name in SUB_AGENT_TOOLS:
                     await emit_agent_event(
                         session_id_str,
@@ -335,6 +372,7 @@ async def launch_agent_pipeline(
                             },
                         )
                         if tool_name in SUB_AGENT_TOOLS:
+                            progress_tracker.start(tool_name)
                             await emit_agent_event(
                                 session_id_str,
                                 tool_name,
@@ -376,6 +414,7 @@ async def launch_agent_pipeline(
             _run_with_streaming(),
             timeout=guardrails.timeout_seconds,
         )
+        progress_tracker.stop_all()
 
         await update_session_status(session.id, AgentSessionStatus.COMPLETED)
         await create_event(
@@ -400,6 +439,7 @@ async def launch_agent_pipeline(
     except asyncio.TimeoutError:
         error_msg = f"Pipeline timed out after {guardrails.timeout_seconds} seconds"
         logger.error(error_msg)
+        progress_tracker.stop_all()
         await update_session_status(
             session.id, AgentSessionStatus.FAILED, error=error_msg
         )
@@ -419,6 +459,7 @@ async def launch_agent_pipeline(
     except RuntimeError as e:
         error_msg = str(e)
         logger.error(f"Pipeline guardrail triggered: {error_msg}")
+        progress_tracker.stop_all()
         await update_session_status(
             session.id, AgentSessionStatus.FAILED, error=error_msg
         )
