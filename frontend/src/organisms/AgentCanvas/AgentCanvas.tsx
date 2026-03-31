@@ -18,6 +18,7 @@ import partitions1 from "@/assets/free-office-pixel-art/office-partitions-1.png"
 import partitions2 from "@/assets/free-office-pixel-art/office-partitions-2.png";
 import sink from "@/assets/free-office-pixel-art/sink.png";
 import trash from "@/assets/free-office-pixel-art/Trash.png";
+import stampingTable from "@/assets/free-office-pixel-art/stamping-table.png";
 
 interface AgentCanvasProps {
   agents: Agent[];
@@ -137,29 +138,57 @@ export const AgentCanvas = ({ agents, className, handoffHistory = [] }: AgentCan
         <image href={deskWithPc} x={CANVAS_WIDTH / 2 - 250} y={CANVAS_HEIGHT / 2 + 120} width={96} height={96} style={{ imageRendering: "pixelated" }} />
         <image href={printer} x={CANVAS_WIDTH / 2 - 350} y={CANVAS_HEIGHT / 2 + 120} width={64} height={64} style={{ imageRendering: "pixelated" }} />
 
-        {/* Central plant and area (instead of text) */}
+        {/* Central working table */}
+        <image href={stampingTable} x={CANVAS_WIDTH / 2 - 32} y={CANVAS_HEIGHT / 2 - 20} width={64} height={64} style={{ imageRendering: "pixelated" }} />
         <image href={plant} x={CANVAS_WIDTH / 2 - 24} y={CANVAS_HEIGHT / 2} width={48} height={48} style={{ imageRendering: "pixelated" }} />
 
         {/* --- AGENTS --- */}
         {Object.entries(AGENT_POSITIONS).map(([role, pos]) => {
           const roleAgents = agentsByRole[role as AgentRole];
           if (!roleAgents || roleAgents.length === 0) return null;
-          // We can render multiple agents of the same role slightly offset, 
-          // but for now, we'll assume one primary agent per role, or stack them using index.
-          return roleAgents.map((agent, index) => (
-            <motion.g
-              key={agent.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              transform={`translate(${pos.x + index * 40}, ${pos.y + 10 + index * 20})`}
-              onMouseEnter={() => handleAgentHover(agent)}
-              onMouseLeave={handleAgentLeave}
-              className="cursor-pointer"
-            >
-              <AgentFigure agent={agent} />
-            </motion.g>
-          ));
+          // We can render multiple agents of the same role slightly offset
+          return roleAgents.map((agent, index) => {
+            const isWorking = agent.state === 'working' || agent.state === 'communicating' || agent.state === 'thinking';
+            
+            // Calculate standard desk position
+            const deskX = pos.x + index * 40;
+            const deskY = pos.y + 10 + index * 20;
+
+            // Calculate meeting/collaboration position around the center
+            let meetX = CANVAS_WIDTH / 2;
+            let meetY = CANVAS_HEIGHT / 2;
+
+            if (role === 'orchestrator') { meetX -= 60; meetY -= 20; }
+            else if (role === 'backend') { meetX += 60; meetY -= 20; }
+            else if (role === 'frontend') { meetX += 60; meetY += 60; }
+            else if (role === 'qa') { meetX -= 60; meetY += 60; }
+
+            // Apply index offset to meeting position as well if there are multiple agents of same role
+            meetX += index * 15;
+            meetY += index * 10;
+
+            const targetX = isWorking ? meetX : deskX;
+            const targetY = isWorking ? meetY : deskY;
+
+            return (
+              <motion.g
+                key={agent.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1,
+                  x: targetX,
+                  y: targetY
+                }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                onMouseEnter={() => handleAgentHover(agent)}
+                onMouseLeave={handleAgentLeave}
+                className="cursor-pointer"
+              >
+                <AgentFigure agent={agent} />
+              </motion.g>
+            );
+          });
         })}
       </svg>
 
