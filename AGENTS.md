@@ -386,11 +386,9 @@ multi-agent-strands/
 
 PostgreSQL database with the following tables:
 - `ticket_states` - Ticket processing state with stage, assigned_agent, context_window (JSON), artifacts (JSON), handoff_history (JSON)
-- `agent_sessions` (v1) - Original session tracking
-- `agent_sessions_v2` - New agent session model with session_id, ticket_id, agent_type, status, current_task, result (JSON), error, retry_count
+- `agent_sessions` - Agent session model with session_id, ticket_id, agent_type, status, current_task, result (JSON), error, retry_count
 - `agent_events` - Agent event log
 - `events` - Event bus event store with event_type, ticket_id, agent_id, payload (JSON), timestamp
-- `agent_sessions` - Legacy agent sessions table
 
 ---
 

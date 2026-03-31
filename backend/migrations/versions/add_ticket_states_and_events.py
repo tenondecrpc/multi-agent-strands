@@ -1,4 +1,4 @@
-"""Add ticket_states, agent_sessions_v2, and events tables
+"""Add ticket_states, agent_sessions, and events tables
 
 Revision ID: add_ticket_states_and_events
 Revises: 282124c5ca1a
@@ -77,11 +77,18 @@ def upgrade() -> None:
         "ix_ticket_states_jira_key", "ticket_states", ["jira_key"], unique=False
     )
 
-    op.create_table(
-        "agent_sessions_v2",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("session_id", sa.String(length=100), nullable=False),
-        sa.Column("ticket_id", sa.String(length=50), nullable=False),
+    op.execute("DROP TYPE IF EXISTS agentsessionstatus CASCADE")
+    op.execute(
+        "CREATE TYPE agentsessionstatus AS ENUM ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'RETRY')"
+    )
+    op.execute("DROP TYPE IF EXISTS agenttype CASCADE")
+    op.execute(
+        "CREATE TYPE agenttype AS ENUM ('ORCHESTRATOR', 'BACKEND', 'FRONTEND', 'QA', 'ARCHITECT')"
+    )
+
+    op.add_column("agent_sessions", sa.Column("session_id", sa.String(length=100), nullable=True))
+    op.add_column(
+        "agent_sessions",
         sa.Column(
             "agent_type",
             sa.Enum(
@@ -92,46 +99,30 @@ def upgrade() -> None:
                 "ARCHITECT",
                 name="agenttype",
             ),
-            nullable=False,
+            nullable=True,
         ),
-        sa.Column(
-            "status",
-            sa.Enum(
-                "PENDING",
-                "RUNNING",
-                "COMPLETED",
-                "FAILED",
-                "RETRY",
-                name="agentsessionstatus",
-            ),
-            nullable=False,
-        ),
-        sa.Column("current_task", sa.String(length=500), nullable=True),
-        sa.Column(
-            "result", sa.JSON().with_variant(sa.JSON(), "postgresql"), nullable=True
-        ),
-        sa.Column("error", sa.String(length=1000), nullable=True),
-        sa.Column(
-            "started_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("retry_count", sa.Integer(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("session_id"),
     )
+    op.add_column("agent_sessions", sa.Column("current_task", sa.String(length=500), nullable=True))
+    op.add_column(
+        "agent_sessions",
+        sa.Column("result", sa.JSON().with_variant(sa.JSON(), "postgresql"), nullable=True),
+    )
+    op.add_column("agent_sessions", sa.Column("error", sa.String(length=1000), nullable=True))
+    op.add_column(
+        "agent_sessions",
+        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.add_column("agent_sessions", sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column("agent_sessions", sa.Column("retry_count", sa.Integer(), server_default="0", nullable=False))
+
+    op.execute("ALTER TABLE agent_sessions ALTER COLUMN status TYPE agentsessionstatus USING status::text::agentsessionstatus")
+    op.execute("UPDATE agent_sessions SET started_at = created_at WHERE started_at IS NULL")
+    op.alter_column("agent_sessions", "started_at", nullable=False)
+
     op.create_index(
-        "ix_agent_sessions_v2_session_id",
-        "agent_sessions_v2",
+        "ix_agent_sessions_session_id",
+        "agent_sessions",
         ["session_id"],
-        unique=False,
-    )
-    op.create_index(
-        "ix_agent_sessions_v2_ticket_id",
-        "agent_sessions_v2",
-        ["ticket_id"],
         unique=False,
     )
 
@@ -173,15 +164,25 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove new tables."""
+    """Remove new tables and columns."""
     op.drop_index("ix_events_timestamp", table_name="events")
     op.drop_index("ix_events_event_type", table_name="events")
     op.drop_index("ix_events_ticket_id", table_name="events")
     op.drop_table("events")
 
-    op.drop_index("ix_agent_sessions_v2_ticket_id", table_name="agent_sessions_v2")
-    op.drop_index("ix_agent_sessions_v2_session_id", table_name="agent_sessions_v2")
-    op.drop_table("agent_sessions_v2")
+    op.drop_index("ix_agent_sessions_session_id", table_name="agent_sessions")
+    op.drop_column("agent_sessions", "retry_count")
+    op.drop_column("agent_sessions", "completed_at")
+    op.drop_column("agent_sessions", "started_at")
+    op.drop_column("agent_sessions", "error")
+    op.drop_column("agent_sessions", "result")
+    op.drop_column("agent_sessions", "current_task")
+    op.drop_column("agent_sessions", "agent_type")
+    op.drop_column("agent_sessions", "session_id")
+
+    op.execute("ALTER TABLE agent_sessions ALTER COLUMN status TYPE sessionstatus USING status::text::sessionstatus")
+    op.execute("DROP TYPE IF EXISTS agentsessionstatus")
+    op.execute("DROP TYPE IF EXISTS agenttype")
 
     op.drop_index("ix_ticket_states_jira_key", table_name="ticket_states")
     op.drop_index("ix_ticket_states_ticket_id", table_name="ticket_states")

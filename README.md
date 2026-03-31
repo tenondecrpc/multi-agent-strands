@@ -1,6 +1,17 @@
 # Multi-Agent Strands
 
+![Strands Agents](strands-agents.png)
+
 Multi-agent software development system that automates Jira ticket handling using Strands Agents SDK.
+
+## Architecture
+
+![Architecture Diagram](docs/architecture/architecture-diagram.png)
+
+The system consists of three main components:
+- **Frontend**: React + Vite + TypeScript for the user interface
+- **Backend**: FastAPI + Strands Agents SDK for orchestration and business logic
+- **Database**: PostgreSQL for persistent storage of ticket states, agent sessions, and events
 
 ## Quick Start
 

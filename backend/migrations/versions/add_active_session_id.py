@@ -1,7 +1,7 @@
 """Add active_session_id to ticket_states
 
 Revision ID: add_active_session_id
-Revises: consolidate_agent_sessions
+Revises: add_ticket_states_and_events
 Create Date: 2026-03-30 19:57:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 revision: str = "add_active_session_id"
-down_revision: Union[str, Sequence[str], None] = "consolidate_agent_sessions"
+down_revision: Union[str, Sequence[str], None] = "add_ticket_states_and_events"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
