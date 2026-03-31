@@ -17,14 +17,14 @@ The MVP dashboard uses basic SVG sprites with CSS animations for agent visualiza
 
 ### 1. Enhanced Agent Sprites
 
-Replace basic SVG shapes with more detailed vector illustrations:
+Replace basic SVG shapes with detailed pixel art animations. As part of this plan, we will source avatar assets and inspiration from the open-source repository [pixel-agents](https://github.com/pablodelucca/pixel-agents/):
 
-| Agent | Current | Improved |
-|-------|---------|----------|
-| **Architect** | Simple geometric with hat | Detailed character with blueprint accessories |
-| **Backend** | Terminal icon | Character at workstation with code elements |
-| **Frontend** | Color palette icon | Character with design tool elements |
-| **QA** | Magnifying glass | Character with test tube/lab equipment |
+| Agent | Current | Improved (Pixel Art) |
+|-------|---------|----------------------|
+| **Orchestrator** (Strands Agents) | Simple geometric with hat | Pixel art character orchestrating flow |
+| **Backend** | Terminal icon | Pixel art character at workstation typing |
+| **Frontend** | Color palette icon | Pixel art character with design tool elements |
+| **QA** | Magnifying glass | Pixel art character with lab equipment or checklist |
 
 ### 2. Animation System
 
@@ -104,7 +104,7 @@ Unified color scheme for all agents:
 |---------|-------|-------|
 | **Background** | `#0f0f23` | Main canvas background |
 | **Grid** | `#1a1a3e` | Subtle grid overlay |
-| **Architect** | `#6366f1` | Primary accent |
+| **Orchestrator** | `#818cf8` | Primary accent / Strands Agents |
 | **Backend** | `#22c55e` | Success/working |
 | **Frontend** | `#f472b6` | Creative elements |
 | **QA** | `#f59e0b` | Warning/attention |
@@ -153,7 +153,7 @@ frontend/src/
 │   └── useCanvasRenderer.ts     # Canvas rendering hook
 ├── assets/
 │   └── sprites/
-│       ├── architect.svg
+│       ├── orchestrator.svg
 │       ├── backend.svg
 │       ├── frontend.svg
 │       └── qa.svg
