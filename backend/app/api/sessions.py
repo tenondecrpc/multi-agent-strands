@@ -82,8 +82,8 @@ async def _get_session_logs(db: AsyncSession, session_uuid: UUID) -> list[AgentL
     result = await db.execute(
         select(AgentEvent)
         .where(AgentEvent.session_id == session_uuid)
-        .order_by(AgentEvent.created_at.desc())
-        .limit(100)
+        .order_by(AgentEvent.created_at.asc())
+        .limit(200)
     )
     events = result.scalars().all()
     logs = []

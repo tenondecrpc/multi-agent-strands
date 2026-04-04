@@ -48,9 +48,16 @@ GitHub Operations:
 - Use github_commit_file to commit changes
 - Use github_create_pull_request to open a PR
 
-Always maintain accurate ticket status in Jira to keep the team informed.""".format(
-    to_do_status=JiraStatus.TO_DO
-)
+Always maintain accurate ticket status in Jira to keep the team informed.
+
+IMPORTANT: When producing the final summary, use clean, well-formatted Markdown:
+- DO NOT use Markdown tables. Use simple bullet lists instead.
+- For key-value pairs, use the format: **Key**: Value
+- Ensure there is always a space after list markers (e.g., "- item" not "-item")
+- Use blank lines between sections for proper rendering
+- Use inline code with backticks for file paths and function names
+- Use headings (##, ###) to separate major sections
+- Keep the output compact and readable""".format(to_do_status=JiraStatus.TO_DO)
 
 
 def create_model(

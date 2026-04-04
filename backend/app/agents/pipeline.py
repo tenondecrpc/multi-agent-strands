@@ -250,7 +250,7 @@ async def create_event(
             agent_id,
             "agent_log",
             {
-                "message": f"Tool call: {payload.get('tool_name', 'unknown')}",
+                "message": str(payload) if payload else "{}",
                 "level": "info",
             },
         )
@@ -316,16 +316,6 @@ async def launch_agent_pipeline(
                     EventType.TOOL_CALL,
                     {"tool_name": tool_name, "status": "completed"},
                 )
-                await emit_agent_event(
-                    session_id_str,
-                    "orchestrator",
-                    "agent_log",
-                    {
-                        "message": f"Tool result: {tool_name} (completed)",
-                        "level": "info",
-                        "progress": 0.5,
-                    },
-                )
                 if tool_name in SUB_AGENT_TOOLS:
                     await emit_agent_event(
                         session_id_str,
@@ -360,16 +350,6 @@ async def launch_agent_pipeline(
                             "orchestrator",
                             EventType.TOOL_CALL,
                             {"tool_name": tool_name, "status": "started"},
-                        )
-                        await emit_agent_event(
-                            session_id_str,
-                            "orchestrator",
-                            "agent_log",
-                            {
-                                "message": f"Tool call: {tool_name}",
-                                "level": "info",
-                                "progress": 0.2,
-                            },
                         )
                         if tool_name in SUB_AGENT_TOOLS:
                             progress_tracker.start(tool_name)
@@ -425,7 +405,7 @@ async def launch_agent_pipeline(
         )
 
         await emit_pipeline_completed(
-            session_id_str, ticket_id, {"status": "completed"}
+            session_id_str, ticket_id, {"status": "completed", "result": str(result)}
         )
 
         logger.info(f"Pipeline completed for ticket: {ticket_id}")

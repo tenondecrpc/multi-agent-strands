@@ -113,6 +113,20 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
         level: "info",
         timestamp: new Date().toISOString(),
       });
+      const resultPayload = data.result;
+      const resultText = typeof resultPayload === 'string'
+        ? resultPayload
+        : resultPayload?.result || resultPayload?.output || JSON.stringify(resultPayload);
+      
+      if (resultText && resultText !== '{}' && resultText !== '{"status":"completed"}') {
+        addLog({
+          id: `result-${Date.now()}-${Math.random()}`,
+          agent_id: "orchestrator",
+          message: `{'result': '${String(resultText).replace(/\n/g, '\\n').replace(/'/g, "\\'")}'}`,
+          level: "info",
+          timestamp: new Date().toISOString(),
+        });
+      }
     };
 
     const onPipelineError = (data: { session_id: string; ticket_id: string; error: string }) => {

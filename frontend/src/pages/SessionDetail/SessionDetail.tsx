@@ -26,10 +26,12 @@ export const SessionDetail = () => {
 
   const isConnected = useConnectionStore((state) => state.status === "connected");
   const socketAgentStates = useSessionStore((state) => state.agentStates);
+  const setAgentStates = useSessionStore((state) => state.setAgentStates);
   const socketLogs = useSessionStore((state) => state.logs);
+  const setLogs = useSessionStore((state) => state.setLogs);
 
-  // Retrieve live logs from socket; agents are derived from socketAgentStates if available
-  const { logs: socketLogsData } = useSocket({
+  // Establish socket connection to listen for new events
+  useSocket({
     sessionId: session?.session_id ?? null,
     onEvent: undefined,
   });
@@ -44,6 +46,24 @@ export const SessionDetail = () => {
         const sessionId = response.data.session_id;
         const sessionResponse = await api.get<SessionResponse>(`/sessions/${sessionId}`);
         setSession(sessionResponse.data);
+        
+        // Initialize global store with fetched data so that websocket events append to it
+        if (sessionResponse.data.logs && sessionResponse.data.logs.length > 0) {
+          setLogs(sessionResponse.data.logs);
+        }
+        
+        if (sessionResponse.data.agents && sessionResponse.data.agents.length > 0) {
+          const initialAgents: Record<string, Agent> = {};
+          sessionResponse.data.agents.forEach((a) => {
+            initialAgents[a.id] = {
+              id: a.id,
+              name: a.name,
+              role: a.role as Agent['role'],
+              state: a.state as Agent['state'],
+            };
+          });
+          setAgentStates(initialAgents);
+        }
       } catch (error) {
         console.error("Failed to fetch session:", error);
         setSession(null);
@@ -80,7 +100,8 @@ export const SessionDetail = () => {
         state: a.state as any,
       }));
 
-  const logs = socketLogsData.length > 0 ? socketLogsData : socketLogs.length > 0 ? socketLogs : session.logs;
+  // socketLogs has the most up-to-date state since we initialize it with session.logs
+  const logs = socketLogs.length > 0 ? socketLogs : session.logs;
 
   return (
     <SessionLayout
