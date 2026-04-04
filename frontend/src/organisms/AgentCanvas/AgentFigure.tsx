@@ -170,7 +170,7 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
 
       <AgentCharacter role={agent.role} state={agent.state} />
 
-      {agent.state === 'working' && agent.progress != null && <ProgressRing progress={agent.progress} />}
+      {/* Progress ring removed as per request */}
 
       <motion.text
         className="agent-name"
@@ -229,4 +229,3 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
     </motion.g>
   );
 };
-
