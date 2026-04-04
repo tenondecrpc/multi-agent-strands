@@ -38,39 +38,38 @@ async def check_and_process_new_tickets():
 
                     result = await db.execute(
                         select(AgentSession)
-                        .where(
-                            AgentSession.ticket_id == ticket_id,
-                            AgentSession.status == AgentSessionStatus.RUNNING,
-                        )
+                        .where(AgentSession.ticket_id == ticket_id)
+                        .order_by(AgentSession.started_at.desc())
                         .limit(1)
                     )
                     existing_session = result.scalar_one_or_none()
 
                     if existing_session:
                         logger.info(
-                            f"[JIRA Polling] Skipping {ticket_id} - already has RUNNING session: {existing_session.id}"
+                            f"[JIRA Polling] Skipping {ticket_id} - session already exists ({existing_session.status.value}): {existing_session.id}"
                         )
                         continue
 
-                    if ticket_id not in _processed_tickets:
-                        logger.info(
-                            f"[JIRA Polling] Processing NEW ticket: {ticket_id}"
+                    if ticket_id in _processed_tickets:
+                        logger.debug(
+                            f"[JIRA Polling] Skipping {ticket_id} - currently being processed"
                         )
-                        _processed_tickets.add(ticket_id)
-                        from app.api.tickets import process_ticket_background
+                        continue
 
-                        try:
-                            session_uuid = await process_ticket_background(ticket_id)
-                            _processed_tickets.discard(ticket_id)
-                        except Exception as e:
-                            logger.error(
-                                f"[JIRA Polling] Error processing {ticket_id}: {e}"
-                            )
-                            _processed_tickets.discard(ticket_id)
-                    else:
-                        logger.info(
-                            f"[JIRA Polling] Skipping in-memory processed ticket: {ticket_id}"
+                    logger.info(
+                        f"[JIRA Polling] Processing NEW ticket: {ticket_id}"
+                    )
+                    _processed_tickets.add(ticket_id)
+                    from app.api.tickets import process_ticket_background
+
+                    try:
+                        await process_ticket_background(ticket_id)
+                    except Exception as e:
+                        logger.error(
+                            f"[JIRA Polling] Error processing {ticket_id}: {e}"
                         )
+                    finally:
+                        _processed_tickets.discard(ticket_id)
         else:
             logger.info("[JIRA Polling] No tickets found")
     except Exception as e:

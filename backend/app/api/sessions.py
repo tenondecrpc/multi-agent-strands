@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.database import get_db
 from app.models.agent_session_model import AgentSession
-from app.models.agent_event import AgentEvent
+from app.models.agent_event import AgentEvent, EventType
 from app.models.ticket_state import TicketState
 from app.schemas.session import (
     SessionResponse,
@@ -17,19 +17,50 @@ from app.schemas.session import (
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
+AGENT_DEFINITIONS = [
+    ("orchestrator", "Orchestrator", "orchestrator"),
+    ("backend_agent", "Backend Agent", "backend"),
+    ("frontend_agent", "Frontend Agent", "frontend"),
+    ("qa_agent", "QA Agent", "qa"),
+]
 
-def _get_default_agents() -> list[SessionAgent]:
+EVENT_TO_STATE = {
+    EventType.AGENT_STARTED: "working",
+    EventType.AGENT_COMPLETED: "success",
+    EventType.AGENT_FAILED: "error",
+}
+
+STATE_EVENT_TYPES = tuple(EVENT_TO_STATE.keys())
+
+
+async def _get_agents_with_state(
+    db: AsyncSession, session_uuid: UUID
+) -> list[SessionAgent]:
+    result = await db.execute(
+        select(AgentEvent)
+        .where(
+            AgentEvent.session_id == session_uuid,
+            AgentEvent.event_type.in_(STATE_EVENT_TYPES),
+        )
+        .order_by(AgentEvent.created_at.desc())
+    )
+    events = result.scalars().all()
+
+    latest_state: dict[str, str] = {}
+    for event in events:
+        if event.agent_id not in latest_state:
+            latest_state[event.agent_id] = EVENT_TO_STATE.get(
+                event.event_type, "idle"
+            )
+
     return [
         SessionAgent(
-            id="orchestrator", name="Orchestrator", role="orchestrator", state="idle"
-        ),
-        SessionAgent(
-            id="backend_agent", name="Backend Agent", role="backend", state="idle"
-        ),
-        SessionAgent(
-            id="frontend_agent", name="Frontend Agent", role="frontend", state="idle"
-        ),
-        SessionAgent(id="qa_agent", name="QA Agent", role="qa", state="idle"),
+            id=agent_id,
+            name=name,
+            role=role,
+            state=latest_state.get(agent_id, "idle"),
+        )
+        for agent_id, name, role in AGENT_DEFINITIONS
     ]
 
 
@@ -78,13 +109,14 @@ async def list_sessions(db: AsyncSession = Depends(get_db)):
         session = session_result.scalar_one_or_none()
 
         if session:
+            agents = await _get_agents_with_state(db, session.id)
             session_responses.append(
                 SessionResponse(
                     session_id=str(session.id),
                     ticket_id=session.ticket_id,
                     status=session.status.value,
                     started_at=session.started_at,
-                    agents=_get_default_agents(),
+                    agents=agents,
                     error=session.error,
                 )
             )
@@ -109,12 +141,14 @@ async def get_session(session_id: str, db: AsyncSession = Depends(get_db)):
 
     logs = await _get_session_logs(db, session_uuid)
 
+    agents = await _get_agents_with_state(db, session_uuid)
+
     return SessionResponse(
         session_id=str(session.id),
         ticket_id=session.ticket_id,
         status=session.status.value,
         started_at=session.started_at,
-        agents=_get_default_agents(),
+        agents=agents,
         logs=logs,
         metrics=SessionMetrics(),
         error=session.error,
