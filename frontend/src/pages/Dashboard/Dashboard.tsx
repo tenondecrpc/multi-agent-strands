@@ -68,10 +68,10 @@ export const Dashboard = ({ sessions: propSessions }: DashboardProps) => {
             {displaySessions.map((session) => (
               <TicketCard
                 key={session.session_id}
-                ticketId={session.ticket_id}
-                title={`Session ${session.session_id.slice(0, 8)}...`}
+                ticketId={`Session ${session.session_id.slice(0, 8)}...`}
+                title={session.ticket_id}
                 status={session.status.toLowerCase() as SessionState["status"]}
-                agentName={session.agents[0]?.name}
+                agentName={session.agents[0]?.name || "Orchestrator"}
                 onClick={() => navigate(`/session/${session.ticket_id}`)}
               />
             ))}

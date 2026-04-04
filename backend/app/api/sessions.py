@@ -30,7 +30,7 @@ EVENT_TO_STATE = {
     EventType.AGENT_FAILED: "error",
 }
 
-STATE_EVENT_TYPES = tuple(EVENT_TO_STATE.keys())
+STATE_EVENT_TYPES = tuple(EVENT_TO_STATE.keys()) + (EventType.TOOL_CALL,)
 
 
 async def _get_agents_with_state(
@@ -48,10 +48,24 @@ async def _get_agents_with_state(
 
     latest_state: dict[str, str] = {}
     for event in events:
-        if event.agent_id not in latest_state:
-            latest_state[event.agent_id] = EVENT_TO_STATE.get(
-                event.event_type, "idle"
-            )
+        if event.event_type == EventType.TOOL_CALL:
+            if not event.payload:
+                continue
+            tool_name = event.payload.get("tool_name")
+            status = event.payload.get("status")
+            if tool_name in [a[0] for a in AGENT_DEFINITIONS]:
+                if tool_name not in latest_state:
+                    if status == "started":
+                        latest_state[tool_name] = "working"
+                    elif status == "completed":
+                        latest_state[tool_name] = "success"
+                    elif status == "error":
+                        latest_state[tool_name] = "error"
+        else:
+            if event.agent_id not in latest_state:
+                latest_state[event.agent_id] = EVENT_TO_STATE.get(
+                    event.event_type, "idle"
+                )
 
     return [
         SessionAgent(

@@ -1,9 +1,6 @@
 import { motion } from "framer-motion";
 import type { Agent, AgentRole, AgentState } from "@/types/agent";
-import boss from "@/assets/free-office-pixel-art/boss.png";
-import worker1 from "@/assets/free-office-pixel-art/worker1.png";
-import worker2 from "@/assets/free-office-pixel-art/worker2.png";
-import worker4 from "@/assets/free-office-pixel-art/worker4.png";
+import juliaIdle from "@/assets/free-office-pixel-art/Julia-Idle.png";
 
 interface AgentFigureProps {
   agent: Agent;
@@ -16,16 +13,17 @@ const ROLE_COLORS: Record<AgentRole, string> = {
   qa: '#fbbf24',
 };
 
-const CHARACTER_MAP: Record<AgentRole, string> = {
-  orchestrator: boss,
-  backend: worker1,
-  frontend: worker2,
-  qa: worker4,
+// We use hue-rotate to change the character's clothing color per role
+const ROLE_HUE: Record<AgentRole, string> = {
+  orchestrator: 'hue-rotate(220deg)', // Blue/Purple
+  backend: 'hue-rotate(150deg)',      // Teal/Green
+  frontend: 'hue-rotate(300deg)',     // Pink/Magenta
+  qa: 'hue-rotate(45deg)',            // Yellow/Orange
 };
 
 function AgentCharacter({ role, state }: { role: AgentRole; state: AgentState }) {
   const isWorking = state === 'working' || state === 'communicating';
-  const imgUrl = CHARACTER_MAP[role] || worker1;
+  const imgUrl = juliaIdle;
 
   return (
     <motion.g 
@@ -47,11 +45,12 @@ function AgentCharacter({ role, state }: { role: AgentRole; state: AgentState })
             width: '32px', height: '32px', 
             backgroundImage: `url(${imgUrl})`,
             backgroundPosition: 'left top',
+            backgroundSize: '128px 32px',
             backgroundRepeat: 'no-repeat',
             transform: 'scale(2)',
             transformOrigin: 'top left',
             imageRendering: 'pixelated',
-            opacity: state === 'error' || state === 'blocked' ? 0.7 : 1
+            filter: `${ROLE_HUE[role]} ${state === 'error' || state === 'blocked' ? 'grayscale(0.7)' : ''}`
           }} 
         />
       </foreignObject>
@@ -103,39 +102,6 @@ function AgentCharacter({ role, state }: { role: AgentRole; state: AgentState })
   );
 }
 
-function ProgressRing({ progress }: { progress: number }) {
-  const radius = 34;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - progress);
-
-  return (
-    <motion.g
-      className="progress-ring"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      transform="translate(32, 32)"
-    >
-      <circle cx="0" cy="0" r={radius} fill="none" stroke="var(--color-border)" strokeWidth="2" />
-      <motion.circle
-        cx="0"
-        cy="0"
-        r={radius}
-        fill="none"
-        stroke="var(--color-primary)"
-        strokeWidth="2"
-        strokeDasharray={circumference}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 0.5, ease: "easeInOut" }}
-        transform="rotate(-90)"
-      />
-      <text textAnchor="middle" dy="46" fontSize="10" fontWeight="bold" fill="var(--color-primary)">
-        {Math.round(progress * 100)}%
-      </text>
-    </motion.g>
-  );
-}
-
 export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
   const isRateLimited = agent.state === 'error' && agent.task?.toLowerCase().includes('rate limit');
   const isBlocked = agent.state === 'blocked';
@@ -176,7 +142,7 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
         className="agent-name"
         x="32"
         textAnchor="middle"
-        y={80}
+        y={76}
         fontSize="12"
         fontWeight="bold"
         fill="var(--color-foreground)"
@@ -184,7 +150,7 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
         style={{
-          textShadow: '0 1px 4px var(--color-background), 0 0 8px var(--color-background)',
+          textShadow: '0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.8)',
           paintOrder: 'stroke fill'
         }}
       >
@@ -196,12 +162,12 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
           className="agent-task"
           x="32"
           textAnchor="middle"
-          y={94}
+          y={88}
           fontSize="9"
-          fill="var(--color-muted-foreground)"
+          fill="#d1d5db"
           fontWeight="500"
           style={{
-            textShadow: '0 1px 2px var(--color-background)',
+            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
             paintOrder: 'stroke fill'
           }}
         >
@@ -213,14 +179,14 @@ export const AgentFigure: React.FC<AgentFigureProps> = ({ agent }) => {
         className="agent-state"
         x="32"
         textAnchor="middle"
-        y={106}
+        y={agent.task ? 100 : 90}
         fontSize="10"
         fontWeight="bold"
-        fill={agent.state === 'error' ? 'var(--color-destructive)' : 'var(--color-muted-foreground)'}
+        fill={agent.state === 'error' ? '#ef4444' : (agent.state === 'success' ? '#22c55e' : '#9ca3af')}
         style={{
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
-          textShadow: '0 1px 2px var(--color-background)',
+          textShadow: '0 1px 3px rgba(0,0,0,0.9)',
           paintOrder: 'stroke fill'
         }}
       >

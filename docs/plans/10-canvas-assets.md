@@ -171,6 +171,7 @@ frontend/src/
 
 ## Reference
 
+- [Free Office Pixel Art](https://arlantr.itch.io/free-office-pixel-art) — Current office pixel art assets being used
 - [Pixel Agents](https://github.com/pablodelucca/pixel-agents) — VS Code extension with pixel art office visualization
 - [Canvas Animation Best Practices](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
 - [SVG Animation](https://developer.mozilla.org/en-US/docs/Web/SVG/SVG_animation_with_SMIL)

@@ -33,30 +33,35 @@ export const TicketCard = ({
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-colors hover:bg-accent/50",
+        "cursor-pointer transition-all hover:bg-accent/30 hover:border-accent-foreground/20",
         className
       )}
       onClick={onClick}
     >
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <Badge variant={config.variant} className="flex items-center gap-1">
-            <Icon name={config.icon} size="sm" />
+          <Badge variant={config.variant} className="flex items-center gap-1.5 capitalize px-2.5 py-0.5">
+            <Icon name={config.icon} size="sm" className="h-3.5 w-3.5" />
             {status}
           </Badge>
           {agentName && (
             <div className="flex items-center gap-2">
-              <Avatar size="sm">
-                <AvatarFallback>{agentName.charAt(0)}</AvatarFallback>
+              <span className="text-xs font-medium text-muted-foreground">{agentName}</span>
+              <Avatar className="h-6 w-6 ring-1 ring-border">
+                <AvatarFallback className="text-[10px] bg-background">{agentName.charAt(0)}</AvatarFallback>
               </Avatar>
-              <span className="text-sm text-muted-foreground">{agentName}</span>
             </div>
           )}
         </div>
       </CardHeader>
       <CardContent>
-        <CardTitle className="text-base">{title}</CardTitle>
-        <p className="mt-1 text-sm text-muted-foreground">{ticketId}</p>
+        <div className="space-y-1.5">
+          <CardTitle className="text-xl tracking-tight">{title}</CardTitle>
+          <div className="flex items-center text-sm text-muted-foreground gap-1.5">
+            <Icon name="hash" size="sm" className="h-3.5 w-3.5 opacity-70" />
+            <p className="font-mono text-xs">{ticketId}</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
