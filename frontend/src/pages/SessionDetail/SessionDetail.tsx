@@ -6,7 +6,7 @@ import { useSessionStore } from "@/lib/stores/sessionStore";
 import { useConnectionStore } from "@/lib/stores/connectionStore";
 import { useSocket } from "@/hooks/useSocket";
 import { api } from "@/lib/api/client";
-import type { Agent } from "@/types/agent";
+import type { Agent, AgentLog } from "@/types/agent";
 
 interface SessionResponse {
   session_id: string;
@@ -14,8 +14,8 @@ interface SessionResponse {
   status: string;
   started_at: string;
   agents: { id: string; name: string; role: string; state: string }[];
-  logs: any[];
-  metrics: any;
+  logs: AgentLog[];
+  metrics: Record<string, unknown>;
   error?: string | null;
 }
 
@@ -72,7 +72,7 @@ export const SessionDetail = () => {
       }
     };
     fetchSession();
-  }, [ticketId]);
+  }, [ticketId, setAgentStates, setLogs]);
 
   if (loading) {
     return (
@@ -96,8 +96,8 @@ export const SessionDetail = () => {
     : session.agents.map((a) => ({
         id: a.id,
         name: a.name,
-        role: a.role as any,
-        state: a.state as any,
+        role: a.role as Agent["role"],
+        state: a.state as Agent["state"],
       }));
 
   // socketLogs has the most up-to-date state since we initialize it with session.logs

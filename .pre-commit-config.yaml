@@ -9,3 +9,12 @@ repos:
       - id: check-added-large-files
       - id: detect-private-key
       - id: end-of-file-fixer
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend-lint
+        entry: bash -c 'cd frontend && npm run format && npm run lint'
+        language: system
+        types_or: [ts, tsx]
+        pass_filenames: false
+        files: ^frontend/

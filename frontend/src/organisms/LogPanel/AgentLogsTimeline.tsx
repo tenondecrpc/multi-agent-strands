@@ -36,12 +36,12 @@ function parsePythonDictStr(str: string) {
     // 4. Final result markdown extraction
     const resultMatch = str.match(/\{\s*'result':\s*'([\s\S]+?)'\s*\}/);
     if (resultMatch) {
-      let resStr = resultMatch[1].replace(/\\n/g, '\n').replace(/\\'/g, "'");
+      const resStr = resultMatch[1].replace(/\\n/g, '\n').replace(/\\'/g, "'");
       return { type: 'result', content: resStr };
     }
 
     return null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -64,6 +64,11 @@ interface ProcessedLogs {
 
 export const AgentLogsTimeline = ({ logs }: { logs: AgentLog[] }) => {
   const logsEndRef = useScrollToBottom<HTMLDivElement>([logs]);
+
+  const startTime = useMemo(() => {
+    const firstLog = logs[0];
+    return firstLog?.timestamp || new Date().toISOString();
+  }, [logs]);
 
   const processed = useMemo<ProcessedLogs>(() => {
     let ticketId: string | null = null;
@@ -145,7 +150,7 @@ export const AgentLogsTimeline = ({ logs }: { logs: AgentLog[] }) => {
       {/* 1. Header / Intro */}
       {processed.ticketId && (
         <div className="flex items-center text-zinc-400 gap-2 mb-2 flex-nowrap">
-          <span className="text-zinc-500 shrink-0">[{new Date(logs[0]?.timestamp || Date.now()).toLocaleTimeString('en-US', { hour12: false })}]</span>
+          <span className="text-zinc-500 shrink-0">[{new Date(startTime).toLocaleTimeString('en-US', { hour12: false })}]</span>
           <span className="shrink-0">🤖 Orchestrator Agent started processing ticket</span>
           <span className="font-bold text-zinc-200 whitespace-nowrap">{processed.ticketId}</span>
         </div>

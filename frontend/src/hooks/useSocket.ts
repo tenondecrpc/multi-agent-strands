@@ -76,7 +76,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
     };
-  }, []);
+  }, [setStatus]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -104,7 +104,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
       });
     };
 
-    const onPipelineCompleted = (data: { session_id: string; ticket_id: string; result: any }) => {
+    const onPipelineCompleted = (data: { session_id: string; ticket_id: string; result: unknown }) => {
       console.log('[Socket] pipeline_completed received:', data);
       addLog({
         id: `${Date.now()}-${Math.random()}`,
@@ -140,7 +140,7 @@ export function useSocket({ sessionId, onEvent }: UseSocketOptions) {
       });
     };
 
-    const onAgentEvent = (event: any) => {
+    const onAgentEvent = (event: Record<string, unknown>) => {
       console.log('[Socket] Received agent_event:', event);
       const payload = event.payload || {};
 
