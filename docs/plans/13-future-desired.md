@@ -226,3 +226,38 @@ During `REPO_SETUP`, the orchestrator:
 - Branch protection rules on target repos remain enforced
 - All PRs require human review (existing human-in-the-loop principle)
 - Workspace cleanup after ticket completion to avoid stale code accumulation
+
+## 12.9 Advanced UI/UX & Granular Tracking (Minimax Demo Inspired)
+
+Features inspired by advanced multi-agent dashboard demos to provide deeper visibility into agent operations:
+
+### Backend / Business Logic
+
+- **Granular Subtask Checklist:** The Manager/Architect agent breaks down tickets into explicit, trackable subtasks (e.g., "Project scaffolding", "Define API schema") stored in the database.
+- **Live Terminal Streaming:** Real-time piping of `stdout`/`stderr` from agent shell commands directly to the frontend via SSE/WebSockets.
+- **Changed Files Tracking:** Real-time tracking and event emission for specific files created or modified during the agent session.
+- **Global Progress Calculation:** Heuristics to calculate and display the overall completion percentage of a ticket (derived from the granular subtask checklist).
+
+### Frontend / Visuals
+
+- **Agent Network Graph Animation:** Interactive 2D Canvas visualization showing the topology of the agent network, their current roles, and message/artifact passing between them in real-time.
+- **Visual State Indicators:** Dynamic UI elements (like glowing dots or color-coded badges) for each agent in the session panel, clearly indicating their current state (e.g., *Delegating, Thinking, Coding, Waiting*).
+
+## 12.10 Migración de Canvas de React a Tiled (Fondo Unificado)
+
+Actualmente, el escenario de la oficina de agentes se renderiza "quemando" (hardcoding) componentes SVG `<image>` directamente en el archivo `AgentCanvas.tsx` y ajustando sus posiciones con un sistema de cuadrícula (Grid Snapping). Aunque esto funciona temporalmente, hace que el componente sea difícil de mantener y limita las posibilidades de diseño.
+
+### Plan
+
+En el futuro, deberíamos migrar a un enfoque de "Fondo Unificado" utilizando **Tiled**:
+
+1. Utilizar un software gratuito como [Tiled](https://www.mapeditor.org/) para pintar todo el escenario de la oficina 2D.
+2. Exportar el escenario estático final como un único archivo `.png` (ej. `office-background.png`).
+3. En `AgentCanvas.tsx`, eliminar todos los SVG individuales (`<rect>`, `<image href={desk}...>`).
+4. Reemplazar todo con una única imagen de fondo que sirva de mapa.
+5. Los agentes (avatares) simplemente se superpondrán a este fondo usando sus coordenadas.
+
+**Ventajas esperadas:**
+* Mejor consistencia visual (sin elementos que solapen mal).
+* Código de React mucho más limpio y ligero.
+* Posibilidad de cambiar todo el diseño de la oficina sin tocar ni una línea de código fuente, solo reemplazando el PNG de fondo.
